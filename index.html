@@ -372,7 +372,8 @@ footer.ft{margin-top:36px;text-align:center;font-size:11px;color:var(--dim2);lin
     <div class="card">
       <h2 class="sec">能力档案</h2>
       <div id="profileBody"></div>
-      <div class="row" style="margin-top:16px">
+      <div id="cardOpt" style="margin-top:16px"></div>
+      <div class="row" style="margin-top:12px">
         <button class="btn primary sm" id="btnProfileMd">导出 Markdown 档案</button>
         <button class="btn sm" id="btnProfileCard">导出能力卡（PNG）</button>
         <button class="btn ghost sm" id="btnCopyProfile">复制纯文本</button>
@@ -1573,6 +1574,7 @@ function profileSentence(){
 }
 function renderProfile(){
   const ds=domStats(), bs=branchStats(), n=doneCount();
+  renderCardOpt();
   if(!n){ $('#profileBody').innerHTML='<p class="tip">点亮第一个节点之后，这里会自动生成你的能力档案：一份"我能做到什么"的证据清单。</p>'; return; }
   const insights=S.completions.filter(c=>c.answers&&c.answers.some(a=>a.a&&a.a.trim().length>=8));
   $('#profileBody').innerHTML =
@@ -1616,9 +1618,38 @@ function profileMd(){
   TASKS.filter(t=>!done.has(t.id)).forEach(t=>L.push('- [ ] '+t.id+' '+t.t+'（'+DM[t.dm].name+' · '+BR[t.br].name+' · '+TIER_NAME[t.tier]+'）'));
   return L.join('\n');
 }
+/* 今天完成的节点：能力卡上可选带一条。
+   统计说明"我坚持了多久"，一条具体的任务才说明"我到底做了什么"。 */
+function todayDone(){
+  const d=ymd();
+  return S.completions.filter(c=>c.date===d && TK[c.id]);
+}
+function renderCardOpt(){
+  const list=todayDone(), box=$('#cardOpt');
+  if(!list.length){
+    box.innerHTML='<p class="tip" style="margin:0">今天还没有点亮的节点。点亮一个之后，可以选择把它印在能力卡上——统计说明你坚持了多久，一条具体的任务才说明你做了什么。</p>';
+    return;
+  }
+  const keep=S.settings.cardTaskId;
+  box.innerHTML='<div class="field" style="margin:0"><label>能力卡上附带今天完成的任务</label>'+
+    '<select id="cardTaskPick">'+
+      '<option value="">不显示</option>'+
+      list.map(c=>'<option value="'+c.id+'"'+((keep===c.id||(!keep&&c.id===list[list.length-1].id))?' selected':'')+'>'+
+        esc(TK[c.id].t)+'　·　'+DM[TK[c.id].dm].name+' '+TIER_NAME[TK[c.id].tier]+'</option>').join('')+
+    '</select></div>';
+  $('#cardTaskPick').onchange=e=>{ S.settings.cardTaskId=e.target.value; save(); };
+}
+function cardTask(){
+  const list=todayDone(); if(!list.length) return null;
+  const pick=$('#cardTaskPick');
+  const id = pick ? pick.value : (S.settings.cardTaskId||'');
+  if(!id) return null;
+  const c=list.find(x=>x.id===id); return c?TK[c.id]:null;
+}
 /* ---------------- 能力卡 PNG ----------------
-   一张能直接发朋友圈的图：坚持了多少天（热力图）、边界在哪（九维雷达）、
-   以及最重要的——右下角能扫的二维码。所有绘制都用原生 canvas，不引任何库。 */
+   一张能直接发朋友圈的图：今天做了什么、坚持了多少天（热力图）、
+   边界在哪（九维雷达）、以及最重要的——右下角能扫的二维码。
+   所有绘制都用原生 canvas，不引任何库。 */
 function hexRgba(h,a){
   h=String(h).trim().replace('#','');
   if(h.length===3) h=h.split('').map(x=>x+x).join('');
@@ -1634,12 +1665,53 @@ function roundRect(c,x,y,w,h,r){
 }
 function profileCardPng(){
   const n=doneCount(); if(!n) return toast('先点亮第一个节点');
-  const W=1080, H=1440, PAD=68;
-  const cv=document.createElement('canvas'); cv.width=W; cv.height=H;
-  const c=cv.getContext('2d'), ff=getComputedStyle(document.body).fontFamily;
+  const W=1080, PAD=68, ff=getComputedStyle(document.body).fontFamily;
   const cs=getComputedStyle(document.documentElement);
   const PHOS=(cs.getPropertyValue('--phos')||'#3ddc84').trim();
   const AMBER=(cs.getPropertyValue('--amber')||'#ffc857').trim();
+
+  /* 先量后画：卡片高度跟着内容走。
+     带了今天那条任务就长一截，句子多一行也多一截——不留大片空白，也不裁掉东西。 */
+  const probe=document.createElement('canvas').getContext('2d');
+  const lineCount=(text,maxW,font)=>{
+    probe.font=font; let lines=1, line='';
+    for(const ch of String(text)){ if(probe.measureText(line+ch).width>maxW&&line){ lines++; line=ch; } else line+=ch; }
+    return lines;
+  };
+  const SENT_F='400 28px '+ff, SENT_LH=44;
+  const sentLines=lineCount(profileSentence(),W-PAD*2,SENT_F);
+  const tk=cardTask();
+  const TASK_H=tk?150:0;
+
+  const act=activityByDate(), todayIdx=dayIndex(), start=startDate(), st=streak(), ad=activeDays();
+  const sp0=start.split('-').map(Number);
+  const off0=((new Date(Date.UTC(sp0[0],sp0[1]-1,sp0[2])).getUTCDay())+6)%7;  // 0=周一
+  const CELL=32, GAP=7, GW=CELL+GAP;
+  const gridW=WEEKS.length*GW-GAP, gx=PAD+Math.round((W-PAD*2-gridW)/2);
+  const gridH=7*GW-GAP;
+
+  // 纵向排布：算到最后一笔为止
+  let cursor=262+sentLines*SENT_LH+30;      // 到「坚持」标题
+  cursor+=TASK_H;
+  const gy=cursor+34+24;                    // 热力图第一行
+  const rowTop=gy+gridH+46+8;               // 「边界」标题
+  const qr=QR.encode(SHARE_URL,{ec:'Q'});
+  const qm=4, qtotal=qr.size+qm*2;
+  // 二维码尽量画大：卡片存在的意义就是它能被扫，扫不动等于白做。
+  // 网址越长码越大（29→37 格），所以这里按格数反推，保证每格至少 8 像素。
+  const boxW=368, qscale=Math.max(2,Math.floor(boxW/qtotal)), qpx=qtotal*qscale;
+  const qrTop=rowTop+96;
+  const H=Math.max(qrTop+qpx+94, rowTop+248+152+74)+130;
+  const fy=H-96;
+
+  const cv=document.createElement('canvas'); cv.width=W; cv.height=H;
+  const c=cv.getContext('2d');
+  const wrap=(text,x,y,maxW,lh)=>{ let line='';
+    for(const ch of String(text)){ if(c.measureText(line+ch).width>maxW&&line){ c.fillText(line,x,y); line=ch; y+=lh; } else line+=ch; }
+    if(line) c.fillText(line,x,y); return y+lh; };
+  const label=(t,x,y)=>{ c.textAlign='left'; c.fillStyle=hexRgba(PHOS,.95); c.font='700 25px '+ff;
+    c.fillText('> '+t,x,y); };
+  c.textBaseline='alphabetic';
 
   /* 背景 */
   const bg=c.createLinearGradient(0,0,W,H);
@@ -1654,13 +1726,6 @@ function profileCardPng(){
   [[26,26,1,1],[W-26,26,-1,1],[26,H-26,1,-1],[W-26,H-26,-1,-1]].forEach(([x,y,sx,sy])=>{
     c.beginPath(); c.moveTo(x+sx*30,y); c.lineTo(x,y); c.lineTo(x,y+sy*30); c.stroke(); });
 
-  const wrap=(text,x,y,maxW,lh)=>{ let line='';
-    for(const ch of String(text)){ if(c.measureText(line+ch).width>maxW&&line){ c.fillText(line,x,y); line=ch; y+=lh; } else line+=ch; }
-    if(line) c.fillText(line,x,y); return y+lh; };
-  const label=(t,x,y)=>{ c.textAlign='left'; c.fillStyle=hexRgba(PHOS,.95); c.font='700 25px '+ff;
-    c.fillText('> '+t,x,y); };
-  c.textBaseline='alphabetic';
-
   /* 页眉 */
   c.textAlign='left';
   c.fillStyle=hexRgba('#8ca79b',.95); c.font='600 26px '+ff;
@@ -1670,7 +1735,6 @@ function profileCardPng(){
   c.fillText(new Date().toLocaleDateString('zh-CN'),W-PAD,104);
 
   /* 主标题 */
-  const st=streak(), ad=activeDays();
   c.textAlign='left';
   c.fillStyle=PHOS; c.font='900 76px '+ff;
   c.fillText(n+' 个',PAD,206);
@@ -1679,23 +1743,40 @@ function profileCardPng(){
   c.fillText('从没做过的事',PAD+nw+14,206);
 
   /* 一句话 */
-  c.fillStyle='#cfe4d8'; c.font='400 28px '+ff;
-  let y=wrap(profileSentence(),PAD,262,W-PAD*2,44)+30;
+  c.fillStyle='#cfe4d8'; c.font=SENT_F;
+  let y=wrap(profileSentence(),PAD,262,W-PAD*2,SENT_LH)+30;
+
+  /* ---- 今天（可选）：一块带领域色边的面板 ---- */
+  if(tk){
+    const dm=DM[tk.dm], br=BR[tk.br];
+    const boxH=118;
+    c.fillStyle='rgba(255,255,255,.045)';
+    roundRect(c,PAD,y-14,W-PAD*2,boxH,12); c.fill();
+    c.strokeStyle=hexRgba(PHOS,.35); c.lineWidth=2;
+    roundRect(c,PAD,y-14,W-PAD*2,boxH,12); c.stroke();
+    c.fillStyle=dm.color;
+    roundRect(c,PAD,y-14,7,boxH,4); c.fill();
+    c.textAlign='left';
+    c.fillStyle=hexRgba(AMBER,.95); c.font='600 22px '+ff;
+    c.fillText('今天',PAD+30,y+12);
+    c.fillStyle='#e8f5ee'; c.font='700 40px '+ff;
+    c.fillText('$ '+tk.t,PAD+30,y+62);
+    c.fillStyle=hexRgba('#8ca79b',.95); c.font='500 23px '+ff;
+    c.fillText(dm.icon+' '+dm.name+'　·　'+br.icon+' '+br.name+'　·　'+TIER_NAME[tk.tier]+'　·　'+dur(tk.min)+'　·　'+tk.power+' 体力',PAD+30,y+96);
+    y+=TASK_H;
+  }
 
   /* ---- 坚持：15 周 × 7 天热力图 ---- */
   label('坚持',PAD,y); 
   c.textAlign='right'; c.fillStyle=AMBER; c.font='700 27px '+ff;
   c.fillText(ad+' 天有记录 · 最长连续 '+st.best+' 天',W-PAD,y);
-  y+=34;
-  const act=activityByDate(), todayIdx=dayIndex(), start=startDate();
-  const sp0=start.split('-').map(Number);
-  const off0=((new Date(Date.UTC(sp0[0],sp0[1]-1,sp0[2])).getUTCDay())+6)%7;  // 0=周一
-  const CELL=32, GAP=7, GW=CELL+GAP;
-  const gridW=WEEKS.length*GW-GAP, gx=PAD+Math.round((W-PAD*2-gridW)/2), gy=y+24;
+  c.textAlign='left';
+  let gyy=gy;
+  const LEGC=[0,.3,.52,.76,1];
   let idx=-off0;
   for(let col=0;col<WEEKS.length;col++){
     for(let row=0;row<7;row++,idx++){
-      const x=gx+col*GW, yy=gy+row*GW;
+      const x=gx+col*GW, yy2=gyy+row*GW;
       if(idx<0||idx>=TOTAL_DAYS) continue;
       const dOff=idx-todayIdx;
       const dt=new Date(); dt.setDate(dt.getDate()+dOff);
@@ -1705,22 +1786,21 @@ function profileCardPng(){
       if(future) fill='rgba(255,255,255,.035)';
       else if(v===undefined) fill='rgba(255,255,255,.07)';
       else if(v<0) fill=hexRgba(AMBER,.5);                    // 熔断卡补的
-      else fill=hexRgba(PHOS,[0,.3,.52,.76,1][Math.min(4,v)]);
+      else fill=hexRgba(PHOS,LEGC[Math.min(4,v)]);
       c.fillStyle=fill;
-      roundRect(c,x,yy,CELL,CELL,5); c.fill();
-      if(idx===todayIdx){ c.strokeStyle=AMBER; c.lineWidth=2.5; roundRect(c,x-3,yy-3,CELL+6,CELL+6,7); c.stroke(); }
+      roundRect(c,x,yy2,CELL,CELL,5); c.fill();
+      if(idx===todayIdx){ c.strokeStyle=AMBER; c.lineWidth=2.5; roundRect(c,x-3,yy2-3,CELL+6,CELL+6,7); c.stroke(); }
     }
   }
   // 月份刻度
   c.fillStyle=hexRgba('#5a6f66',1); c.font='500 21px '+ff; c.textAlign='center';
   for(let col=0;col<WEEKS.length;col++){
     const dt=new Date(); dt.setDate(dt.getDate()+(col*7-off0-todayIdx));
-    if(col===0||dt.getDate()<=7) c.fillText((dt.getMonth()+1)+'月',gx+col*GW+CELL/2,gy-12);
+    if(col===0||dt.getDate()<=7) c.fillText((dt.getMonth()+1)+'月',gx+col*GW+CELL/2,gyy-12);
   }
-  y=gy+7*GW-GAP+46;
+  c.textAlign='left';
 
   /* ---- 边界（九维雷达） + 二维码 ---- */
-  const rowTop=y+8;
   label('边界',PAD,rowTop);
   const ds=domStats(), keys=DOMAINS.map(d=>d.key), N=keys.length;
   const rcx=PAD+272, rcy=rowTop+248, R=152;
@@ -1756,22 +1836,22 @@ function profileCardPng(){
   c.textBaseline='alphabetic';
 
   /* 二维码：卡片存在的意义就是它能被扫 */
-  const qr=QR.encode(SHARE_URL,{ec:'Q'});
-  const qm=4, qtotal=qr.size+qm*2;
-  const boxW=286, qscale=Math.max(2,Math.floor(boxW/qtotal)), qpx=qtotal*qscale;
-  const qx=W-PAD-qpx, qy=rowTop+96;
+  const qx=W-PAD-qpx, qy=qrTop;
   c.fillStyle='#fff'; roundRect(c,qx-16,qy-16,qpx+32,qpx+32,16); c.fill();
   c.save(); c.translate(qx,qy);
   QR.toCanvas(qr,c,{scale:qscale,margin:qm,dark:'#05070a',light:'#ffffff'});
   c.restore();
   c.textAlign='center'; c.fillStyle=AMBER; c.font='700 26px '+ff;
   c.fillText('扫码开始你的 105 天',qx+qpx/2,qy+qpx+62);
-  c.fillStyle=hexRgba('#8ca79b',1); c.font='500 19px '+ff;
-  c.fillText(SHARE_URL.replace(/^https?:\/\//,'').replace(/\/$/,''),qx+qpx/2,qy+qpx+94);
+  // 网址是可以用 data.mjs 改的，长域名不能让这行字冲出画框——按宽度自动缩号
+  const urlText=SHARE_URL.replace(/^https?:\/\//,'').replace(/\/$/,'');
+  let uf=17, uw=0;
+  do{ c.font='500 '+uf+'px '+ff; uw=c.measureText(urlText).width; if(uw<=W-PAD*2-20) break; uf--; }while(uf>10);
+  c.fillStyle=hexRgba('#8ca79b',1);
+  c.fillText(urlText,qx+qpx/2,qy+qpx+94);
 
   /* 页脚 */
   const bsx=branchStats();
-  const fy=H-96;
   c.strokeStyle=hexRgba(PHOS,.18); c.lineWidth=2;
   c.beginPath(); c.moveTo(PAD,fy-52); c.lineTo(W-PAD,fy-52); c.stroke();
   c.textAlign='left'; c.fillStyle='#cfe4d8'; c.font='500 24px '+ff;
