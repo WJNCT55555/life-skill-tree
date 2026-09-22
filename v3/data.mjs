@@ -126,3 +126,7 @@ export const TIER_NAME   = ['', '入门', '熟练', '进阶', '硬仗', '大师'
 export const UNLOCK_NEED = 2;
 export const TOTAL_DAYS  = 105;
 export const VERSION = '3.3.0';
+
+// 线上地址。能力卡上的二维码指向这里；离线双击打开时也回退到这里。
+// 换了域名 / 换了部署地址，只改这一行，然后 node v3/build.mjs。
+export const SHARE_URL = 'https://life-skill-tree.2281544643.workers.dev/';

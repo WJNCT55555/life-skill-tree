@@ -276,17 +276,37 @@ if (problems.length) {
 const weeks = WEEKS.map((w, i) => ({ ...w, key: 'w' + w.n, ids: slots[i] }));
 const DATA = { VERSION, STAMP, TOTAL_DAYS, DAILY_POWER, POWER_LEVELS, POWER_LABEL: D.POWER_LABEL, DOMAINS, BRANCHES, WEEKS: weeks, TASKS: all, ACHS,
   UNLOCK_NEED, TIER_NAME, PEOPLE_TAGS: D.PEOPLE_TAGS, PLACE_TAGS: D.PLACE_TAGS, TIME_TAGS: D.TIME_TAGS, COST_TAGS: D.COST_TAGS };
-let html = fs.readFileSync(path.join(__dirname, 'template.html'), 'utf8')
-  .replaceAll('{{DATA_JSON}}', JSON.stringify(DATA))
-  .replaceAll('{{STAMP}}', STAMP)
-  .replaceAll('{{VERSION}}', VERSION)
-  .replaceAll('{{NODE_COUNT}}', String(all.length))
-  .replaceAll('{{BRANCH_COUNT}}', String(BRANCHES.length))
-  .replaceAll('{{DOMAIN_COUNT}}', String(DOMAINS.length))
-  .replaceAll('{{WEEK_COUNT}}', String(WEEKS.length))
-  .replaceAll('{{DAY_COUNT}}', String(TOTAL_DAYS));
+// 二维码编码器：源码只有 tools/qr.js 一份（tools/qr-test.mjs 给它跑 49 项自检），
+// 这里整段注入到页面里，避免模板里再抄一份、两边慢慢走偏。
+const QR_LIB = fs.readFileSync(path.join(ROOT, 'tools', 'qr.js'), 'utf8');
+if (QR_LIB.includes('</script')) { console.error('❌ tools/qr.js 里有 </script，不能内联进 HTML'); process.exit(1); }
+if (!/QR\.encode|return \{ encode/.test(QR_LIB)) { console.error('❌ tools/qr.js 看起来不是那个编码器'); process.exit(1); }
+
+// 注意：replaceAll 的第二个参数如果是字符串，$& / $' / $$ 会被当成替换模式。
+// 数据里有中文、库里有模板字符串，所以一律用函数形式，原样写入。
+const put = (s, token, val) => s.replaceAll(token, () => val);
+let html = put(fs.readFileSync(path.join(__dirname, 'template.html'), 'utf8'), '{{DATA_JSON}}', JSON.stringify(DATA));
+html = put(html, '{{STAMP}}', STAMP);
+html = put(html, '{{VERSION}}', VERSION);
+html = put(html, '{{SHARE_URL}}', D.SHARE_URL || '');
+html = put(html, '{{QR_LIB}}', QR_LIB);
+html = put(html, '{{NODE_COUNT}}', String(all.length));
+html = put(html, '{{BRANCH_COUNT}}', String(BRANCHES.length));
+html = put(html, '{{DOMAIN_COUNT}}', String(DOMAINS.length));
+html = put(html, '{{WEEK_COUNT}}', String(WEEKS.length));
+html = put(html, '{{DAY_COUNT}}', String(TOTAL_DAYS));
 const left = html.match(/\{\{[A-Z_]+\}\}/g);
 if (left) { console.error('❌ 模板占位符未替换：' + [...new Set(left)].join(', ')); process.exit(1); }
+if (!/^https?:\/\/[^\s'"]+\/$/.test(D.SHARE_URL || '')) {
+  console.error('❌ data.mjs 里的 SHARE_URL 不像一个网址：' + D.SHARE_URL + '（能力卡上的二维码要用它）');
+  process.exit(1);
+}
+// 离线双击打开时 location 是 file://，会回退到这个字面量。它要是没进成品，
+// 卡片上的二维码就会指向一个本地路径——而这事只有离线用的人才碰得到，很难发现。
+if (!html.includes("return '" + D.SHARE_URL + "'")) {
+  console.error('❌ 成品里找不到 SHARE_URL 的兜底分支，离线打开的卡片会印出错误的二维码');
+  process.exit(1);
+}
 
 // 血的教训：标题、简介、分享文案里的数字以前是手写的，题库从 100 涨到 301、
 // 分支从 24 涨到 27，这些地方没人记得改，页签上一直挂着「100 个节点」。

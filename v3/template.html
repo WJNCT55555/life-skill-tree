@@ -437,6 +437,8 @@ footer.ft{margin-top:36px;text-align:center;font-size:11px;color:var(--dim2);lin
 <div id="mega"><div class="m"><div class="t" id="megaT"></div><div class="s" id="megaS"></div></div></div>
 
 <script id="appdata" type="application/json">{{DATA_JSON}}</script>
+<!-- 二维码编码器：源码在 tools/qr.js，构建时整段注入（tools/qr-test.mjs 有 49 项自检） -->
+<script>{{QR_LIB}}</script>
 <script>
 (function(){
 "use strict";
@@ -450,6 +452,13 @@ DOMAINS.forEach(d => DM[d.key] = d);
 BRANCHES.forEach(b => BR[b.key] = b);
 TASKS.forEach(t => TK[t.id] = t);
 const TARGET = TASKS.length, KEY = 'life-skilltree-v3';
+// 分享用的网址：在线打开就用当前地址；离线双击打开时 location 是 file://，
+// 那就回退到构建时写进来的正式网址，否则卡片上的二维码会指向一个本地路径。
+const SHARE_URL = (function(){
+  try{ if(/^https?:$/.test(location.protocol)) return location.origin + location.pathname.replace(/[^/]*$/,''); }
+  catch(e){}
+  return '{{SHARE_URL}}';
+})();
 const $ = s => document.querySelector(s);
 const $$ = s => Array.from(document.querySelectorAll(s));
 const esc = s => String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -1207,7 +1216,7 @@ function profileMd(){
   const ds=domStats(), st=streak(), n=doneCount();
   const L=['# 我的能力档案','','> 导出时间：'+new Date().toLocaleString('zh-CN')+' · 由「人生技能树」自动生成','',
     '## 一句话','',profileSentence(),'','## 数据','',
-    '- 点亮节点：**'+n+' / '+TARGET+'**','- 覆盖领域：**'+Object.values(ds).filter(x=>x.done>0).length+' / 8**',
+    '- 点亮节点：**'+n+' / '+TARGET+'**','- 覆盖领域：**'+Object.values(ds).filter(x=>x.done>0).length+' / '+DOMAINS.length+'**',
     '- 最长连续：**'+st.best+'** 天','- 追问完成：**'+qDoneCount()+'** 组',''];
   for(const d of DOMAINS){
     const list=S.completions.filter(c=>TK[c.id].dm===d.key);
@@ -1226,35 +1235,172 @@ function profileMd(){
   TASKS.filter(t=>!done.has(t.id)).forEach(t=>L.push('- [ ] '+t.id+' '+t.t+'（'+DM[t.dm].name+' · '+BR[t.br].name+' · '+TIER_NAME[t.tier]+'）'));
   return L.join('\n');
 }
+/* ---------------- 能力卡 PNG ----------------
+   一张能直接发朋友圈的图：坚持了多少天（热力图）、边界在哪（九维雷达）、
+   以及最重要的——右下角能扫的二维码。所有绘制都用原生 canvas，不引任何库。 */
+function hexRgba(h,a){
+  h=String(h).trim().replace('#','');
+  if(h.length===3) h=h.split('').map(x=>x+x).join('');
+  if(h.length<6) return 'rgba(61,220,132,'+a+')';
+  return 'rgba('+parseInt(h.slice(0,2),16)+','+parseInt(h.slice(2,4),16)+','+parseInt(h.slice(4,6),16)+','+a+')';
+}
+function roundRect(c,x,y,w,h,r){
+  c.beginPath();
+  c.moveTo(x+r,y); c.lineTo(x+w-r,y); c.arcTo(x+w,y,x+w,y+r,r);
+  c.lineTo(x+w,y+h-r); c.arcTo(x+w,y+h,x+w-r,y+h,r);
+  c.lineTo(x+r,y+h); c.arcTo(x,y+h,x,y+h-r,r);
+  c.lineTo(x,y+r); c.arcTo(x,y,x+r,y,r); c.closePath();
+}
 function profileCardPng(){
   const n=doneCount(); if(!n) return toast('先点亮第一个节点');
-  const W=1080,H=1500,cv=document.createElement('canvas'); cv.width=W; cv.height=H;
+  const W=1080, H=1440, PAD=68;
+  const cv=document.createElement('canvas'); cv.width=W; cv.height=H;
   const c=cv.getContext('2d'), ff=getComputedStyle(document.body).fontFamily;
-  const bg=c.createLinearGradient(0,0,W,H); bg.addColorStop(0,'#0d1a13'); bg.addColorStop(.55,'#080d0a'); bg.addColorStop(1,'#070a08');
+  const cs=getComputedStyle(document.documentElement);
+  const PHOS=(cs.getPropertyValue('--phos')||'#3ddc84').trim();
+  const AMBER=(cs.getPropertyValue('--amber')||'#ffc857').trim();
+
+  /* 背景 */
+  const bg=c.createLinearGradient(0,0,W,H);
+  bg.addColorStop(0,'#0d1a13'); bg.addColorStop(.55,'#080d0a'); bg.addColorStop(1,'#060907');
   c.fillStyle=bg; c.fillRect(0,0,W,H);
-  const gl=c.createRadialGradient(W-140,90,20,W-140,90,760); gl.addColorStop(0,'rgba(61,220,132,.3)'); gl.addColorStop(1,'rgba(0,0,0,0)');
-  c.fillStyle=gl; c.fillRect(0,0,W,900);
-  c.strokeStyle='rgba(160,255,200,.22)'; c.lineWidth=3; c.strokeRect(26,26,W-52,H-52);
+  const gl=c.createRadialGradient(W-160,60,20,W-160,60,820);
+  gl.addColorStop(0,hexRgba(PHOS,.26)); gl.addColorStop(1,'rgba(0,0,0,0)');
+  c.fillStyle=gl; c.fillRect(0,0,W,880);
+  c.strokeStyle=hexRgba(PHOS,.22); c.lineWidth=3; c.strokeRect(26,26,W-52,H-52);
+  // 四角准星，跟界面里一样的终端味道
+  c.strokeStyle=hexRgba(PHOS,.5); c.lineWidth=3;
+  [[26,26,1,1],[W-26,26,-1,1],[26,H-26,1,-1],[W-26,H-26,-1,-1]].forEach(([x,y,sx,sy])=>{
+    c.beginPath(); c.moveTo(x+sx*30,y); c.lineTo(x,y); c.lineTo(x,y+sy*30); c.stroke(); });
+
   const wrap=(text,x,y,maxW,lh)=>{ let line='';
     for(const ch of String(text)){ if(c.measureText(line+ch).width>maxW&&line){ c.fillText(line,x,y); line=ch; y+=lh; } else line+=ch; }
     if(line) c.fillText(line,x,y); return y+lh; };
-  c.textAlign='left'; let y=150;
-  c.fillStyle='rgba(143,167,154,.95)'; c.font='600 28px '+ff; c.fillText('人生技能树 · 能力档案',84,y-56);
-  c.fillStyle='#3ddc84'; c.font='900 58px '+ff; c.fillText(n+' 个从没做过的节点',84,y+10); y+=78;
-  c.fillStyle='#d3e8dc'; c.font='400 30px '+ff; y=wrap(profileSentence(),84,y,W-168,46)+34;
+  const label=(t,x,y)=>{ c.textAlign='left'; c.fillStyle=hexRgba(PHOS,.95); c.font='700 25px '+ff;
+    c.fillText('> '+t,x,y); };
+  c.textBaseline='alphabetic';
+
+  /* 页眉 */
+  c.textAlign='left';
+  c.fillStyle=hexRgba('#8ca79b',.95); c.font='600 26px '+ff;
+  c.fillText('>_ 人生技能树',PAD,104);
+  c.textAlign='right';
+  c.fillStyle=hexRgba('#5a6f66',1); c.font='500 25px '+ff;
+  c.fillText(new Date().toLocaleDateString('zh-CN'),W-PAD,104);
+
+  /* 主标题 */
+  const st=streak(), ad=activeDays();
+  c.textAlign='left';
+  c.fillStyle=PHOS; c.font='900 76px '+ff;
+  c.fillText(n+' 个',PAD,206);
+  const nw=c.measureText(n+' 个').width;
+  c.fillStyle='#e8f5ee'; c.font='800 40px '+ff;
+  c.fillText('从没做过的事',PAD+nw+14,206);
+
+  /* 一句话 */
+  c.fillStyle='#cfe4d8'; c.font='400 28px '+ff;
+  let y=wrap(profileSentence(),PAD,262,W-PAD*2,44)+30;
+
+  /* ---- 坚持：15 周 × 7 天热力图 ---- */
+  label('坚持',PAD,y); 
+  c.textAlign='right'; c.fillStyle=AMBER; c.font='700 27px '+ff;
+  c.fillText(ad+' 天有记录 · 最长连续 '+st.best+' 天',W-PAD,y);
+  y+=34;
+  const act=activityByDate(), todayIdx=dayIndex(), start=startDate();
+  const sp0=start.split('-').map(Number);
+  const off0=((new Date(Date.UTC(sp0[0],sp0[1]-1,sp0[2])).getUTCDay())+6)%7;  // 0=周一
+  const CELL=32, GAP=7, GW=CELL+GAP;
+  const gridW=WEEKS.length*GW-GAP, gx=PAD+Math.round((W-PAD*2-gridW)/2), gy=y+24;
+  let idx=-off0;
+  for(let col=0;col<WEEKS.length;col++){
+    for(let row=0;row<7;row++,idx++){
+      const x=gx+col*GW, yy=gy+row*GW;
+      if(idx<0||idx>=TOTAL_DAYS) continue;
+      const dOff=idx-todayIdx;
+      const dt=new Date(); dt.setDate(dt.getDate()+dOff);
+      const ds0=dt.getFullYear()+'-'+String(dt.getMonth()+1).padStart(2,'0')+'-'+String(dt.getDate()).padStart(2,'0');
+      const v=act[ds0], future=idx>todayIdx;
+      let fill;
+      if(future) fill='rgba(255,255,255,.035)';
+      else if(v===undefined) fill='rgba(255,255,255,.07)';
+      else if(v<0) fill=hexRgba(AMBER,.5);                    // 熔断卡补的
+      else fill=hexRgba(PHOS,[0,.3,.52,.76,1][Math.min(4,v)]);
+      c.fillStyle=fill;
+      roundRect(c,x,yy,CELL,CELL,5); c.fill();
+      if(idx===todayIdx){ c.strokeStyle=AMBER; c.lineWidth=2.5; roundRect(c,x-3,yy-3,CELL+6,CELL+6,7); c.stroke(); }
+    }
+  }
+  // 月份刻度
+  c.fillStyle=hexRgba('#5a6f66',1); c.font='500 21px '+ff; c.textAlign='center';
+  for(let col=0;col<WEEKS.length;col++){
+    const dt=new Date(); dt.setDate(dt.getDate()+(col*7-off0-todayIdx));
+    if(col===0||dt.getDate()<=7) c.fillText((dt.getMonth()+1)+'月',gx+col*GW+CELL/2,gy-12);
+  }
+  y=gy+7*GW-GAP+46;
+
+  /* ---- 边界（九维雷达） + 二维码 ---- */
+  const rowTop=y+8;
+  label('边界',PAD,rowTop);
+  const ds=domStats(), keys=DOMAINS.map(d=>d.key), N=keys.length;
+  const rcx=PAD+272, rcy=rowTop+248, R=152;
+  const ang=i=>-Math.PI/2+i*2*Math.PI/N;
+  c.textAlign='left';
+  for(let r=1;r<=4;r++){ c.beginPath();
+    for(let i=0;i<=N;i++){ const a=ang(i%N), rr=R*r/4;
+      const x=rcx+Math.cos(a)*rr, yy2=rcy+Math.sin(a)*rr; i?c.lineTo(x,yy2):c.moveTo(x,yy2); }
+    c.strokeStyle=hexRgba(PHOS,r===4?.28:.11); c.lineWidth=r===4?2:1.4; c.stroke(); }
+  for(let i=0;i<N;i++){ const a=ang(i); c.beginPath(); c.moveTo(rcx,rcy);
+    c.lineTo(rcx+Math.cos(a)*R,rcy+Math.sin(a)*R);
+    c.strokeStyle=hexRgba(PHOS,.12); c.lineWidth=1.4; c.stroke(); }
+  // 边界 = 每个领域点亮数占该领域总数的比例（真实进度，不注水）
+  const val=k=>Math.min(1, ds[k].done/Math.max(1,ds[k].total));
+  c.beginPath();
+  keys.forEach((k,i)=>{ const a=ang(i), rr=R*Math.max(val(k),.05);
+    const x=rcx+Math.cos(a)*rr, yy2=rcy+Math.sin(a)*rr; i?c.lineTo(x,yy2):c.moveTo(x,yy2); });
+  c.closePath();
+  const rg=c.createLinearGradient(rcx-R,rcy-R,rcx+R,rcy+R);
+  rg.addColorStop(0,hexRgba(PHOS,.55)); rg.addColorStop(1,hexRgba(AMBER,.42));
+  c.fillStyle=rg; c.fill(); c.strokeStyle=PHOS; c.lineWidth=3; c.stroke();
+  keys.forEach((k,i)=>{
+    const a=ang(i), rr=R*Math.max(val(k),.05);
+    c.beginPath(); c.arc(rcx+Math.cos(a)*rr,rcy+Math.sin(a)*rr,6,0,7);
+    c.fillStyle=DM[k].color; c.fill(); c.strokeStyle='rgba(0,0,0,.55)'; c.lineWidth=2; c.stroke();
+    const lx=rcx+Math.cos(a)*(R+48), ly=rcy+Math.sin(a)*(R+40);
+    c.textAlign='center'; c.textBaseline='middle';
+    c.fillStyle='#e8f5ee'; c.font='700 23px '+ff;
+    c.fillText(DM[k].icon+DM[k].name,lx,ly);
+    c.fillStyle=hexRgba('#8ca79b',.95); c.font='500 19px '+ff;
+    c.fillText(ds[k].done+'/'+ds[k].total,lx,ly+27);
+  });
+  c.textBaseline='alphabetic';
+
+  /* 二维码：卡片存在的意义就是它能被扫 */
+  const qr=QR.encode(SHARE_URL,{ec:'Q'});
+  const qm=4, qtotal=qr.size+qm*2;
+  const boxW=286, qscale=Math.max(2,Math.floor(boxW/qtotal)), qpx=qtotal*qscale;
+  const qx=W-PAD-qpx, qy=rowTop+96;
+  c.fillStyle='#fff'; roundRect(c,qx-16,qy-16,qpx+32,qpx+32,16); c.fill();
+  c.save(); c.translate(qx,qy);
+  QR.toCanvas(qr,c,{scale:qscale,margin:qm,dark:'#05070a',light:'#ffffff'});
+  c.restore();
+  c.textAlign='center'; c.fillStyle=AMBER; c.font='700 26px '+ff;
+  c.fillText('扫码开始你的 105 天',qx+qpx/2,qy+qpx+62);
+  c.fillStyle=hexRgba('#8ca79b',1); c.font='500 19px '+ff;
+  c.fillText(SHARE_URL.replace(/^https?:\/\//,'').replace(/\/$/,''),qx+qpx/2,qy+qpx+94);
+
+  /* 页脚 */
   const bsx=branchStats();
-  c.fillStyle='rgba(255,200,87,.95)'; c.font='700 26px '+ff; c.fillText('走过的分支',84,y); y+=46;
-  for(const b of BRANCHES){ const s=bsx[b.key]; if(!s.done) continue; if(y>H-320) break;
-    const bw=W-168; c.fillStyle='rgba(255,255,255,.09)'; c.fillRect(84,y+14,bw,12);
-    c.fillStyle=DM[b.dm].color; c.fillRect(84,y+14,bw*(s.done/s.total),12);
-    c.fillStyle='#d3e8dc'; c.font='400 29px '+ff; c.fillText(b.icon+' '+b.name+'   '+s.done+'/'+s.total,84,y); y+=54; }
-  y+=10; c.strokeStyle='rgba(160,255,200,.18)'; c.lineWidth=2;
-  c.beginPath(); c.moveTo(84,y); c.lineTo(W-84,y); c.stroke(); y+=44;
-  c.fillStyle='#8fa79a'; c.font='italic 400 25px '+ff;
-  y=wrap('一个男人应该能够换尿布，策划战争，杀猪，开船，设计房子，写十四行诗，结算账户，砌墙，接脱臼的骨头，安慰濒死的人。只有昆虫才专业化。',84,y,W-168,40)+16;
-  c.fillStyle='#5f7268'; c.font='400 24px '+ff;
-  c.fillText(new Date().toLocaleDateString('zh-CN')+' · 人生技能树',84,Math.min(y,H-70));
-  cv.toBlob(b=>{ if(b){ download('能力档案-'+ymd()+'.png',b); toast('能力卡已导出'); } },'image/png');
+  const fy=H-96;
+  c.strokeStyle=hexRgba(PHOS,.18); c.lineWidth=2;
+  c.beginPath(); c.moveTo(PAD,fy-52); c.lineTo(W-PAD,fy-52); c.stroke();
+  c.textAlign='left'; c.fillStyle='#cfe4d8'; c.font='500 24px '+ff;
+  const brTouched=Object.values(bsx).filter(x=>x.done>0).length;
+  const brDone=Object.values(bsx).filter(x=>x.total&&x.done>=x.total).length;
+  c.fillText('点亮 '+n+'/'+TARGET+'　·　走过 '+brTouched+'/'+BRANCHES.length+' 条分支（走通 '+brDone+' 条）　·　成就 '+S.achievements.length+'/'+ACHS.length,PAD,fy);
+  c.fillStyle=hexRgba('#5a6f66',1); c.font='400 21px '+ff;
+  c.fillText('一个男人应该能够换尿布，策划战争，杀猪，开船，设计房子，写十四行诗，结算账目，砌墙，接脱臼的骨头，安慰濒死的人。只有昆虫才专业化。',PAD,fy+34);
+
+  cv.toBlob(b=>{ if(b){ download('能力卡-'+ymd()+'.png',b); toast('能力卡已导出：发朋友圈，二维码能扫'); } },'image/png');
 }
 let blindTask=null;
 function blindDraw(){
