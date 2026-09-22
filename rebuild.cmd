@@ -14,7 +14,7 @@ if errorlevel 1 goto nonode
 node v3\build.mjs
 if errorlevel 1 goto buildfail
 
-echo   Done. Open "人生成就系统.html" (double-click) to see it.
+echo   Done. Open "index.html" (double-click) to see it.
 echo.
 pause
 exit /b 0

@@ -4,8 +4,8 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#0b0f0d">
-<meta name="description" content="人生技能树：24 条路线、100 个节点，每天点亮一个从没做过的节点。">
-<title>人生技能树 · 100 个节点</title>
+<meta name="description" content="人生技能树：27 条路线、301 个节点，每天点亮一个从没做过的节点。">
+<title>人生技能树 · 301 个节点</title>
 <style>
 :root{
   --bg:#05070a; --panel:rgba(255,255,255,.035); --panel2:rgba(255,255,255,.07);
@@ -278,7 +278,7 @@ footer.ft{margin-top:36px;text-align:center;font-size:11px;color:var(--dim2);lin
   <header class="top">
     <div class="brand">
       <div class="seal">&gt;_</div>
-      <h1>人生技能树<span class="cursor"></span><small id="subtitle">九领域 · 27 条分支 · 297 个节点</small></h1>
+      <h1>人生技能树<span class="cursor"></span><small id="subtitle">9 领域 · 27 条分支 · 301 个节点</small></h1>
     </div>
     <div class="hud" id="hud"></div>
   </header>
@@ -343,7 +343,7 @@ footer.ft{margin-top:36px;text-align:center;font-size:11px;color:var(--dim2);lin
   <section class="view" id="v-domains">
     <div class="card">
       <h2 class="sec">九大领域</h2>
-      <p class="tip" style="margin-top:0">每个领域三条分支，每条 10 个节点。分支名就是这条线在练什么——不再有额外的"属性"层。</p>
+      <p class="tip" style="margin-top:0">每个领域三条分支，每条十几个节点，越往后越难。分支名就是这条线在练什么——不再有额外的“属性”层。</p>
       <div id="domaingrid" style="margin-top:14px;display:grid;gap:11px"></div>
     </div>
   </section>
@@ -725,13 +725,13 @@ function renderHead(){
   $('#pgBar').style.width = (n/TARGET*100)+'%';
   $('#pgLabel').textContent = '已点亮 '+n+' / '+TARGET;
   $('#pgSub').textContent = n===0 ? '还没点亮第一个节点' : '追问 '+qDoneCount()+' 组 · 分支 '+brDone+'/'+BRANCHES.length+' 全通';
-  $('#subtitle').textContent = '24 条路线 · '+TARGET+' 个节点 · 已点亮 '+n;
+  $('#subtitle').textContent = BRANCHES.length+' 条路线 · '+TARGET+' 个节点 · 已点亮 '+n;
 }
 function renderQuote(){
   const qs = [
     ['你不需要更自律，你需要更有趣的事。','系统的全部设计前提'],
     ['做完了不算完成，说清楚了才算。','所以每个节点都有三个追问'],
-    ['科技树的意义不是收集，是让你看得见自己在往哪长。','24 条分支就是 24 个方向'],
+    ['科技树的意义不是收集，是让你看得见自己在往哪长。', BRANCHES.length+' 条分支就是 '+BRANCHES.length+' 个方向'],
     ['一个人应该能够换尿布，策划战争，写十四行诗，结算账户，安慰濒死的人。只有昆虫才专业化。','罗伯特·海因莱因'],
     ['不适感是门票，不是障碍。','今天这个节点可能让你有点难堪——那就对了'],
   ];
@@ -836,7 +836,7 @@ function renderHeat(){
 function renderToday(){
   const t = ensureToday(), box = $('#quest');
   renderWeekCard();  if(!t){
-    box.innerHTML = '<div class="empty"><div class="big">🐉</div><p>100 个节点全部点亮。现在挑 20 个，把它们变成你的日常。</p></div>';
+    box.innerHTML = '<div class="empty"><div class="big">🐉</div><p>'+TARGET+' 个节点全部点亮。现在挑 20 个，把它们变成你的日常。</p></div>';
     $('#reviewpanel').style.display='none'; renderFreeze(); return;
   }
   const dm = DM[t.dm], br = BR[t.br];
@@ -998,7 +998,7 @@ function renderFreeze(){
     el.innerHTML='<h2 class="sec">昨天断了</h2><p style="font-size:13.5px;color:#d3e8dc;margin:0">不影响你已经点亮的 '+doneCount()+' 个节点。'+
       (S.freezes>0?'你有 <b style="color:var(--amber)">'+S.freezes+'</b> 张熔断卡可以补上昨天，连击不清零。'
         :S.revives>0?'熔断卡用完了，还有 <b style="color:var(--amber)">'+S.revives+'</b> 张复活卡。'
-        :'所有卡都用完了。那就从今天重新数——你要的是那 100 个节点，不是那个数字。')+'</p>'+
+        :'所有卡都用完了。那就从今天重新数——你要的是那 '+TARGET+' 个节点，不是那个数字。')+'</p>'+
       '<div class="acts" style="margin-top:12px">'+
       (S.freezes>0?'<button class="btn primary sm" id="uf">用 1 张熔断卡补昨天</button>':'')+
       (S.freezes<=0&&S.revives>0?'<button class="btn sm" id="ur">用 1 张复活卡补昨天</button>':'')+
@@ -1271,7 +1271,7 @@ function blindDraw(){
     '<div class="row" style="margin-top:10px"><button class="btn sm" id="bSet">我今天就做它</button>'+
     '<button class="btn ghost sm" id="bCopy">复制任务文字</button></div>';
   $('#bSet').onclick=()=>{ S.todayTaskId=t.id; delete S.carryFrom; save(); go('today'); renderAll(); toast('已定为今天'); };
-  $('#bCopy').onclick=()=>copyText('【盲盒节点】'+t.t+'\n'+t.do+'\n—— 来自「人生技能树 · 100 个节点」');
+  $('#bCopy').onclick=()=>copyText('【盲盒节点】'+t.t+'\n'+t.do+'\n—— 来自「人生技能树 · '+TARGET+' 个节点」');
 }
 function copyText(txt){
   if(navigator.clipboard) navigator.clipboard.writeText(txt).then(()=>toast('已复制'),()=>fallbackCopy(txt));
@@ -1306,7 +1306,7 @@ function renderSettings(){
     '<b>熔断卡</b>：连续打卡每满 7 天自动攒 1 张（最多 3 张）。某天做不到，用掉一张，连击不清零。',
     '<b>复活卡 3 张</b>：真断了用一张补回来。用完也不必自责——那是该减量的信号。',
     '<b>夜间保护</b>：22:00 后只发轻量的睡前节点。你在治失眠，别跟自己的觉作对。',
-    '<b>100 个节点不是终点</b>：导出能力档案，从里面挑 20 个变成你的日常——新鲜事的使命是变成你的一部分。',
+    '<b>'+TARGET+' 个节点不是终点</b>：导出能力档案，从里面挑 20 个变成你的日常——新鲜事的使命是变成你的一部分。',
   ].map(x=>'<li style="padding:9px 0 9px 26px;position:relative;border-bottom:1px dashed rgba(255,255,255,.07)">'+
     '<span style="position:absolute;left:4px;top:12px;color:var(--phos);font-size:9px">◆</span>'+x+'</li>').join('');
 }

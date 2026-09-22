@@ -4,10 +4,14 @@ import path from 'node:path';
 import url from 'node:url';
 
 const __dirname = path.dirname(url.fileURLToPath(import.meta.url));
-const html = fs.readFileSync(path.resolve(__dirname, '..', '人生成就系统.html'), 'utf8');
+// 产物叫 index.html（当初叫「人生成就系统.html」，改名后这里没跟着改，自检就一直是坏的）
+const OUT = path.resolve(__dirname, '..', 'index.html');
+if (!fs.existsSync(OUT)) { console.error('找不到产物 ' + OUT + '，先跑 node v3/build.mjs'); process.exit(1); }
+const html = fs.readFileSync(OUT, 'utf8');
 const i = html.indexOf('<script id="appdata"');
 const j = html.indexOf('>', i) + 1;
 const k = html.indexOf('</script>', j);
+if (i < 0 || k < 0) { console.error('产物里没有 <script id="appdata"> 数据块'); process.exit(1); }
 const D = JSON.parse(html.slice(j, k));
 
 const h = {};

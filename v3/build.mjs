@@ -7,7 +7,7 @@
  * 本脚本：校验 → 派生标签 → 分配 15 个主题周（105 天）→ 合成单文件
  *
  * 用法：node v3/build.mjs
- * 产出：人生成就系统.html（双击即用） + docs/科技树总览.md（可打印）
+ * 产出：index.html（双击即用，也是网站首页） + docs/科技树总览.md（可打印）
  */
 import fs from 'node:fs';
 import path from 'node:path';
@@ -277,11 +277,33 @@ const weeks = WEEKS.map((w, i) => ({ ...w, key: 'w' + w.n, ids: slots[i] }));
 const DATA = { VERSION, STAMP, TOTAL_DAYS, DAILY_POWER, POWER_LEVELS, POWER_LABEL: D.POWER_LABEL, DOMAINS, BRANCHES, WEEKS: weeks, TASKS: all, ACHS,
   UNLOCK_NEED, TIER_NAME, PEOPLE_TAGS: D.PEOPLE_TAGS, PLACE_TAGS: D.PLACE_TAGS, TIME_TAGS: D.TIME_TAGS, COST_TAGS: D.COST_TAGS };
 let html = fs.readFileSync(path.join(__dirname, 'template.html'), 'utf8')
-  .replace('{{DATA_JSON}}', JSON.stringify(DATA))
-  .replace('{{STAMP}}', STAMP)
-  .replace('{{VERSION}}', VERSION);
+  .replaceAll('{{DATA_JSON}}', JSON.stringify(DATA))
+  .replaceAll('{{STAMP}}', STAMP)
+  .replaceAll('{{VERSION}}', VERSION)
+  .replaceAll('{{NODE_COUNT}}', String(all.length))
+  .replaceAll('{{BRANCH_COUNT}}', String(BRANCHES.length))
+  .replaceAll('{{DOMAIN_COUNT}}', String(DOMAINS.length))
+  .replaceAll('{{WEEK_COUNT}}', String(WEEKS.length))
+  .replaceAll('{{DAY_COUNT}}', String(TOTAL_DAYS));
 const left = html.match(/\{\{[A-Z_]+\}\}/g);
 if (left) { console.error('❌ 模板占位符未替换：' + [...new Set(left)].join(', ')); process.exit(1); }
+
+// 血的教训：标题、简介、分享文案里的数字以前是手写的，题库从 100 涨到 301、
+// 分支从 24 涨到 27，这些地方没人记得改，页签上一直挂着「100 个节点」。
+// 所以现在模板里不许再出现写死的规模数字，一律用 {{NODE_COUNT}} 这类占位符。
+const tpl = fs.readFileSync(path.join(__dirname, 'template.html'), 'utf8');
+const SCALE_WORDS = '个节点|条路线|条分支|个领域|个主题周|个任务|个成就|天主线';
+const hardcoded = [];
+tpl.split('\n').forEach((line, i) => {
+  const re = new RegExp(`\\d+\\s*(?:${SCALE_WORDS})`, 'g');
+  const m = line.match(re);
+  if (m) hardcoded.push(`第 ${i + 1} 行：${m.join('、')}  →  ${line.trim().slice(0, 90)}`);
+});
+if (hardcoded.length) {
+  console.error('❌ 模板里有写死的规模数字，请改用 {{NODE_COUNT}} / {{BRANCH_COUNT}} / {{DOMAIN_COUNT}}：');
+  hardcoded.forEach((h) => console.error('   - ' + h));
+  process.exit(1);
+}
 fs.writeFileSync(path.join(ROOT, 'index.html'), html, 'utf8');
 
 /* ============================================================
@@ -319,7 +341,7 @@ const byTier = [1, 2, 3, 4].map((k) => all.filter((t) => t.tier === k).length);
 const kb = (fs.statSync(path.join(ROOT, 'index.html')).size / 1024).toFixed(1);
 const avgNameLen = (all.reduce((a, b) => a + b.t.length, 0) / all.length).toFixed(1);
 const avgDoLen = Math.round(all.reduce((a, b) => a + b.do.length, 0) / all.length);
-console.log('✅ v3.1 构建完成');
+console.log(`✅ v${VERSION} 构建完成`);
 console.log(`   产物     : index.html (${kb} KB) + docs/科技树总览.md`);
 console.log(`   题库     : ${all.length} 个节点 · ${BRANCHES.length} 条分支 · 每条 ${Object.values(NODES).map(n=>n.length).join('/')} 个`);
 console.log(`   主线     : 15 个主题周 × 7 天 = ${TOTAL_DAYS} 天 · 备选池 ${unassigned.length} 个`);
