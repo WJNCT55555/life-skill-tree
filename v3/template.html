@@ -97,6 +97,19 @@ h1 small{display:block;font-weight:400;font-size:11px;color:var(--dim2);letter-s
 .energy i.on{background:var(--phos);box-shadow:0 0 8px color-mix(in srgb,var(--phos) 60%,transparent)}
 .energy.full i{background:var(--amber);box-shadow:0 0 8px color-mix(in srgb,var(--amber) 62%,transparent)}
 .energy i.over{background:var(--bad);box-shadow:0 0 9px color-mix(in srgb,var(--bad) 70%,transparent)}
+
+/* ---------- 卡包：手上有什么卡 ---------- */
+.wallet{display:flex;gap:7px;flex-wrap:wrap;align-items:center;margin-bottom:13px}
+.wallet .wlabel{font-size:11px;color:var(--dim2);letter-spacing:1.5px}
+.wchip{font-family:var(--mono);font-size:11.5px;padding:5px 10px;border-radius:3px;cursor:pointer;
+  border:1px solid var(--line);background:rgba(0,0,0,.3);color:var(--dim2);
+  display:flex;align-items:center;gap:6px;white-space:nowrap;transition:.12s}
+.wchip b{font-size:13px;color:var(--dim)}
+.wchip .cap{font-size:10px;opacity:.55}
+.wchip.has{border-color:color-mix(in srgb,var(--phos) 42%,transparent);background:color-mix(in srgb,var(--phos) 9%,transparent);color:var(--txt)}
+.wchip.has b{color:var(--phos)}
+.wchip:hover{background:rgba(255,255,255,.12);border-color:var(--line2);color:var(--txt)}
+.wchip .wq{color:var(--amber);font-weight:700}
 .pw{font-family:var(--mono);font-size:11.5px;padding:3px 9px;border-radius:8px;border:1px solid var(--line);color:var(--dim)}
 .pw.tight{color:var(--amber);border-color:color-mix(in srgb,var(--amber) 42%,transparent);background:color-mix(in srgb,var(--amber) 10%,transparent)}
 .pw.done{color:var(--phos);border-color:color-mix(in srgb,var(--phos) 42%,transparent);background:color-mix(in srgb,var(--phos) 10%,transparent)}
@@ -289,6 +302,9 @@ footer.ft{margin-top:36px;text-align:center;font-size:11px;color:var(--dim2);lin
     <span id="energyBox" class="energy"></span>
     <span id="statusText" class="mono"></span>
   </div>
+
+  <!-- 卡包：手上有什么卡，一眼看到底，点一下说怎么来怎么用 -->
+  <div class="wallet" id="wallet"></div>
 
   <div class="progressline">
     <div class="meta"><span id="pgLabel">已点亮 0 / 100</span><span id="pgSub"></span></div>
@@ -755,6 +771,57 @@ function mega(t,s){ $('#megaT').textContent=t; $('#megaS').textContent=s||'';
   setTimeout(()=>el.classList.remove('on'),2700); }
 function closeModal(){ $('#modal').classList.remove('on'); }
 
+/* ---------------- 卡包 ----------------
+   以前四种卡散在四个地方：复活卡是 HUD 里一个没头没尾的 💗，
+   熔断卡只有"昨天断了而且还没到下午两点"才露一次面，创建卡藏在任务库页，
+   换一个写在按钮上。想看一眼自己手上有什么，得跑三个标签页。 */
+const CARD_INFO = {
+  freeze: { ic:'🔥', n:'熔断卡', cap:3,
+    get:'连续打卡每满 7 天自动攒 1 张，最多 3 张。',
+    use:'某天没做成，在「今日」页用它补上昨天，连击不清零。' },
+  revive: { ic:'💗', n:'复活卡', cap:3,
+    get:'开局送 3 张，之后没有获取途径。',
+    use:'连击真断了，在「今日」页用它补回来。用完也不必自责——那是该减量的信号。' },
+  custom: { ic:'🎴', n:'创建卡', cap:null,
+    get:'每累计 '+CARD_MINUTES+' 分钟真实投入发 1 张（单个任务最多按 '+CARD_CAP_MIN+' 分钟计入）。',
+    use:'在「任务库」页用它加一个自己定的节点，会进科技树、能被抽到、能点亮。' },
+  reroll: { ic:'🔄', n:'换一个', cap:2,
+    get:'每天回满 2 次。',
+    use:'今天发的节点不想做，在「今日」页换一个。' },
+};
+function cardCount(k){
+  if(k==='freeze') return S.freezes||0;
+  if(k==='revive') return S.revives||0;
+  if(k==='custom') return cardsLeft();
+  return S.rerollsLeft||0;
+}
+function renderWallet(){
+  const el=$('#wallet'); if(!el) return;
+  el.innerHTML='<span class="wlabel">&gt; 卡包</span>'+
+    Object.keys(CARD_INFO).map(k=>{
+      const c=CARD_INFO[k], n=cardCount(k);
+      const soon = (k==='custom' && n===0) ? '<span class="cap">还差 '+minutesToNextCard()+' 分</span>' : '';
+      return '<button class="wchip'+(n>0?' has':'')+'" data-card="'+k+'" title="'+esc(c.get+c.use)+'">'+
+        c.ic+' '+c.n+' <b>'+n+'</b>'+(c.cap?'<span class="cap">/'+c.cap+'</span>':'')+soon+'</button>';
+    }).join('');
+  $$('#wallet [data-card]').forEach(b=>b.onclick=()=>openCardInfo(b.dataset.card));
+}
+function openCardInfo(k){
+  const c=CARD_INFO[k], n=cardCount(k);
+  const extra =
+    k==='freeze' ? (n>0?'':'<div class="tip" style="margin-top:10px">你现在最长连续 <b>'+streak().best+'</b> 天。每满 7 天攒 1 张，到 '+(Math.floor(streak().best/7)+1)*7+' 天再得 1 张。</div>')
+  : k==='custom' ? '<div class="tip" style="margin-top:10px">累计投入 <b>'+countedMinutes()+'</b> 分钟 · 已发 '+earnedCards()+' 张 · 用了 '+(S.custom||[]).length+' 张。再攒 <b>'+minutesToNextCard()+'</b> 分钟得下一张。</div>'
+  : '';
+  $('#modalBox').innerHTML='<h3>'+c.ic+' '+c.n+' · 你手上有 '+n+' 张</h3>'+
+    '<p><b>怎么来</b>'+esc(c.get)+'</p>'+
+    '<p><b>怎么用</b>'+esc(c.use)+'</p>'+extra+
+    '<div class="acts" style="margin-top:16px"><button class="btn primary" id="ciOk">知道了</button>'+
+    (k==='custom'&&n>0?'<button class="btn" id="ciGo">去建一个</button>':'')+'</div>';
+  $('#ciOk').onclick=closeModal;
+  if($('#ciGo')) $('#ciGo').onclick=()=>{ closeModal(); go('tree'); setTimeout(openNewCustom,340); };
+  $('#modal').classList.add('on');
+}
+
 function renderHead(){
   const n=doneCount(), st=streak(), bs=branchStats();
   const brDone = Object.values(bs).filter(x=>x.total&&x.done>=x.total).length;
@@ -764,8 +831,8 @@ function renderHead(){
     '<span class="chip">📅 第 <b>'+cw+'</b>/15 周</span>'+
     '<span class="chip amber">🔥 <b>'+st.cur+'</b> 天</span>'+
     '<span class="chip">🧭 分支 <b>'+brDone+'</b>/'+BRANCHES.length+'</span>'+
-    '<span class="chip">🏆 <b>'+S.achievements.length+'</b>/'+ACHS.length+'</span>'+
-    '<span class="chip">💗 <b>'+S.revives+'</b></span>';
+    '<span class="chip">🏆 <b>'+S.achievements.length+'</b>/'+ACHS.length+'</span>';
+  renderWallet();   // 四种卡统一放卡包里，HUD 里那个没头没尾的 💗 撤了
   const spent = spentToday(), left = DAILY_POWER - spent, over = spent - DAILY_POWER;
   // 15 格：点亮的格数 = 已消耗的体力；超额时转为红色
   const cellCls = (i) => {
