@@ -897,7 +897,7 @@ function ddiff(a,b){ const p=a.split('-').map(Number), q=b.split('-').map(Number
 
 function blank(){
   return { v:3, rev:0, updatedAt:new Date().toISOString(), createdAt:new Date().toISOString(),
-    todayDate:ymd(), todayTaskId:null, rerollsLeft:2, carryFrom:null,
+    todayDate:ymd(), todayTaskId:null, todayPinned:false, rerollsLeft:2, carryFrom:null,
     completions:[], freezes:0, freezeUsed:[], revives:3, revivesUsed:[],
     achievements:[], gems:0, gemsTotal:0,
     custom:[], cardSeen:0,
@@ -1142,10 +1142,13 @@ function draw(){
 }
 function ensureToday(){
   syncDay();
-  if(!S.todayTaskId || isDone(S.todayTaskId) && !compOf(S.todayTaskId)) { /* keep */ }
-  if(!S.todayTaskId){ const t=draw(); if(t){ S.todayTaskId=t.id; save(); } }
-  // 今日节点若因缺少前置被锁（例如撤销过打卡），自动换一个可做的
-  if(S.todayTaskId && !isDone(S.todayTaskId) && !isUnlocked(S.todayTaskId)){ const t=draw(); if(t) S.todayTaskId=t.id; save(); }
+  if(!S.todayTaskId){ const t=draw(); if(t){ S.todayTaskId=t.id; S.todayPinned=false; save(); } }
+  // 今日节点若因缺少前置被锁（例如撤销过打卡），自动换一个可做的。
+  // 但「自己挑的」不能悄悄换掉——那会变成"我点了 A，显示的是 B"。
+  // 人挑的就钉住（todayPinned），锁着也照原样显示，由卡片上的 🔒 提示说明缺什么。
+  if(S.todayTaskId && !isDone(S.todayTaskId) && !isUnlocked(S.todayTaskId) && !S.todayPinned){
+    const t=draw(); if(t){ S.todayTaskId=t.id; S.todayPinned=false; } save();
+  }
   return TK[S.todayTaskId] || null;
 }
 
@@ -1380,12 +1383,12 @@ function renderToday(){
     '</div>';
   if(done){
     $('#btnAnswers').onclick = ()=>openAnswers(t,c);
-    $('#btnUndo').onclick = ()=>{ S.completions=S.completions.filter(x=>x.id!==t.id); S.todayTaskId=null; save(); renderAll(); toast('已撤销点亮'); };
+    $('#btnUndo').onclick = ()=>{ S.completions=S.completions.filter(x=>x.id!==t.id); S.todayTaskId=null; S.todayPinned=false; save(); renderAll(); toast('已撤销点亮'); };
   } else {
     $('#btnDone').onclick = ()=>openCheckin(t);
   }
   $('#btnReroll').onclick = ()=>{ if(S.rerollsLeft<=0) return; S.rerollsLeft--;
-    const nt=draw(); if(nt){ S.todayTaskId=nt.id; delete S.carryFrom; save(); renderAll(); toast('换好了：'+nt.t); } else toast('没有可换的节点了'); };
+    const nt=draw(); if(nt){ S.todayTaskId=nt.id; S.todayPinned=false; delete S.carryFrom; save(); renderAll(); toast('换好了：'+nt.t); } else toast('没有可换的节点了'); };
   $('#btnPick').onclick = openPicker;
   renderReview(); renderFreeze();
 }
@@ -1422,6 +1425,7 @@ function openCheckin(t){
     if(overNow) S.gems = (S.gems||0) + 2;   // 超额每天额外奖励 2 颗宝石
     S.gemsTotal += g;
     if(S.carryFrom) delete S.carryFrom;
+    S.todayPinned = false;   // 做完了，明天重新抽，别把这个钉子留着
     // 创建卡按累计时长发：跨过 600 分钟的整数倍就 +1
     const cardsNow = earnedCards();
     const newCards = Math.max(0, cardsNow - (S.cardSeen||0));
@@ -1490,7 +1494,9 @@ function openPicker(){
       '<span class="tip mono">'+(t.custom?'★ 自定义':TIER_NAME[t.tier])+' · '+t.min+'分</span></div>').join('')
       : '<div class="tip" style="padding:16px">没有符合条件的节点，放宽筛选试试。</div>';
     Array.from($('#plist').children).forEach(r=>{ if(r.dataset.id) r.onclick=()=>{
-      S.todayTaskId=r.dataset.id; delete S.carryFrom; save(); closeModal(); renderAll(); toast('已定为今天：'+TK[r.dataset.id].t); }; });
+      S.todayTaskId=r.dataset.id; S.todayPinned=true; delete S.carryFrom; save(); closeModal(); renderAll();
+      const t=TK[r.dataset.id];
+      toast(isUnlocked(t.id)?('已定为今天：'+t.t):('已定为今天：'+t.t+'（还差前置，卡片上有说明）'),3600); }; });
   }
   ['#pBr','#pTag','#pTier','#pDm','#pU','#pE'].forEach(s=>$(s).onchange=paint);
   $('#cl2').onclick=closeModal; paint(); $('#modal').classList.add('on');
@@ -1607,7 +1613,7 @@ function showTask(id){
     (c&&c.answers?'<p><b>你写的</b>'+c.answers.filter(a=>a.a).map(a=>esc(a.a)).join('<br>')+'</p>':'')+
     '<div class="acts foot">'+(c?'':'<button class="btn primary" id="setToday">设为今天的节点</button>')+
     '<button class="btn ghost" id="cl3">关闭</button></div>';
-  if($('#setToday')) $('#setToday').onclick=()=>{ S.todayTaskId=id; delete S.carryFrom; save(); closeModal(); go('today'); renderAll(); toast('已定为今天'); };
+  if($('#setToday')) $('#setToday').onclick=()=>{ S.todayTaskId=id; S.todayPinned=true; delete S.carryFrom; save(); closeModal(); go('today'); renderAll(); toast('已定为今天'); };
   $('#cl3').onclick=closeModal; $('#modal').classList.add('on');
 }
 
@@ -1720,7 +1726,7 @@ function renderCustom(){
     }).join('')+'</div>':'');
   $('#btnNewCustom').onclick=openNewCustom;
   $$('[data-usecustom]').forEach(b=>b.onclick=()=>{
-    S.todayTaskId=b.dataset.usecustom; delete S.carryFrom; save(); go('today'); renderAll(); toast('已定为今天');
+    S.todayTaskId=b.dataset.usecustom; S.todayPinned=true; delete S.carryFrom; save(); go('today'); renderAll(); toast('已定为今天');
   });
   $$('[data-delcustom]').forEach(b=>b.onclick=()=>{
     const id=b.dataset.delcustom, t=TK[id];
@@ -2088,7 +2094,7 @@ function blindDraw(){
     '<div class="tip">'+esc(t.do)+'</div></div>'+
     '<div class="row" style="margin-top:10px"><button class="btn sm" id="bSet">我今天就做它</button>'+
     '<button class="btn ghost sm" id="bCopy">复制任务文字</button></div>';
-  $('#bSet').onclick=()=>{ S.todayTaskId=t.id; delete S.carryFrom; save(); go('today'); renderAll(); toast('已定为今天'); };
+  $('#bSet').onclick=()=>{ S.todayTaskId=t.id; S.todayPinned=true; delete S.carryFrom; save(); go('today'); renderAll(); toast('已定为今天'); };
   $('#bCopy').onclick=()=>copyText('【盲盒节点】'+t.t+'\n'+t.do+'\n—— 来自「人生技能树 · '+TARGET+' 个节点」');
 }
 function copyText(txt){
