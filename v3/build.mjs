@@ -147,11 +147,6 @@ const QSET = {
     { t: '真正的成本', q: '这件事拖到现在才做，你付出的代价是什么？（钱、时间、机会、还是情绪）' },
     { t: '迁移', q: '如果只能保留今天建立的其中一条规则，你会留哪一条？为什么是它？' },
   ],
-  aesthetic: [
-    { t: '感官记录', q: '做「{T}」的时候，你注意到哪一个具体的感官细节（味道、光、声音、触感）是以前忽略的？' },
-    { t: '为什么以前不做', q: '这件并不难、也不贵的事，你为什么到今天才第一次做？真正的原因是什么？' },
-    { t: '迁移', q: '如果每周固定留出两小时"只做这种没用但舒服的事"，你愿意从哪一天开始？' },
-  ],
   night: [
     { t: '身体的变化', q: '做「{T}」前后，你的身体状态（困意、心跳、肩颈、呼吸）有什么具体的不同？' },
     { t: '失去的那段', q: '省下来的这段时间，如果之前是被手机吃掉的，你现在更清楚它是怎么被吃掉的了么？' },
@@ -174,6 +169,23 @@ const QSET = {
   ],
 };
 all.forEach((t) => { t.q = QSET[t.dm].map((x) => ({ t: x.t, q: x.q.replace('{T}', t.t) })); });
+
+// QSET 是对象字面量，重复的键会被 JS 引擎悄悄丢掉，任何运行时校验都看不见。
+// 真出过事：`aesthetic` 写了两次，前一份是专门为「审美」写的三个追问，
+// 被后一份（其实是「品味」的）无声覆盖，于是两个领域问一模一样的问题。
+// 所以直接扫自己的源码，同一个领域键出现两次就拒绝构建。
+{
+  const self = fs.readFileSync(path.join(__dirname, 'build.mjs'), 'utf8');
+  const block = self.match(/const QSET = \{([\s\S]*?)\n\};/);
+  if (!block) problems.push('找不到 QSET 定义，重复键检查失效了');
+  else {
+    const keys = [...block[1].matchAll(/^ {2}(\w+):\s*\[/gm)].map((m) => m[1]);
+    const dup = [...new Set(keys.filter((k, i) => keys.indexOf(k) !== i))];
+    if (dup.length) problems.push(`QSET 里有重复的领域键：${dup.join('、')}（后一份会静默覆盖前一份）`);
+    const miss = DOMAINS.map((d) => d.key).filter((k) => !keys.includes(k));
+    if (miss.length) problems.push(`QSET 缺少这些领域：${miss.join('、')}`);
+  }
+}
 
 /* ============================================================
    3. 分配 15 个主题周（105 天）
@@ -275,7 +287,12 @@ if (problems.length) {
    ============================================================ */
 const weeks = WEEKS.map((w, i) => ({ ...w, key: 'w' + w.n, ids: slots[i] }));
 const DATA = { VERSION, STAMP, TOTAL_DAYS, DAILY_POWER, POWER_LEVELS, POWER_LABEL: D.POWER_LABEL, DOMAINS, BRANCHES, WEEKS: weeks, TASKS: all, ACHS,
-  UNLOCK_NEED, TIER_NAME, PEOPLE_TAGS: D.PEOPLE_TAGS, PLACE_TAGS: D.PLACE_TAGS, TIME_TAGS: D.TIME_TAGS, COST_TAGS: D.COST_TAGS };
+  UNLOCK_NEED, TIER_NAME, PEOPLE_TAGS: D.PEOPLE_TAGS, PLACE_TAGS: D.PLACE_TAGS, TIME_TAGS: D.TIME_TAGS, COST_TAGS: D.COST_TAGS,
+  // 自定义任务要按用户填的时长反推体力，所以把档位表也带过去。
+  // 只带有限的那几档：POWER_BY_TIME 最后一档的上界是 Infinity，JSON 里会变成 null。
+  POWER_STEPS: D.POWER_BY_TIME.filter((x) => Number.isFinite(x[0])),
+  // 自定义任务也要有三问，沿用所属领域那一套，不然打卡弹窗会崩
+  QSET };
 // 二维码编码器：源码只有 tools/qr.js 一份（tools/qr-test.mjs 给它跑 49 项自检），
 // 这里整段注入到页面里，避免模板里再抄一份、两边慢慢走偏。
 const QR_LIB = fs.readFileSync(path.join(ROOT, 'tools', 'qr.js'), 'utf8');

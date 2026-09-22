@@ -164,6 +164,8 @@ section.view.on{display:block}
 .node.locked::after{content:"🔒";position:absolute;top:4px;left:6px;font-size:12px}
 .node.next{border-color:color-mix(in srgb,var(--phos) 45%,transparent);box-shadow:0 0 0 1px color-mix(in srgb,var(--phos) 18%,transparent)}
 .node.now{border-color:var(--phos);box-shadow:0 0 0 2px color-mix(in srgb,var(--phos) 34%,transparent)}
+.node.mine{border-style:solid;border-color:color-mix(in srgb,var(--amber) 55%,transparent)}
+.node.mine .tier{background:color-mix(in srgb,var(--amber) 30%,rgba(0,0,0,.5));color:var(--amber)}
 .legend{display:flex;gap:14px;flex-wrap:wrap;margin-top:14px;font-size:11.5px;color:var(--dim)}
 .legend i{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:5px;vertical-align:-1px}
 
@@ -323,6 +325,7 @@ footer.ft{margin-top:36px;text-align:center;font-size:11px;color:var(--dim2);lin
   </section>
 
   <section class="view" id="v-tree">
+    <div class="card" id="custompanel"></div>
     <div class="card">
       <h2 class="sec">任务库 <span id="libCount" style="letter-spacing:0;text-transform:none;color:var(--dim)"></span></h2>
       <div class="row" style="margin-bottom:14px">
@@ -448,11 +451,23 @@ const TASKS = D.TASKS, DOMAINS = D.DOMAINS, BRANCHES = D.BRANCHES, ACHS = D.ACHS
 const UNLOCK_NEED = D.UNLOCK_NEED, TIER_NAME = D.TIER_NAME, VERSION = D.VERSION;
 const WEEKS = D.WEEKS, TOTAL_DAYS = D.TOTAL_DAYS;
 const DAILY_POWER = D.DAILY_POWER, POWER_LEVELS = D.POWER_LEVELS, POWER_LABEL = D.POWER_LABEL;
+const POWER_STEPS = D.POWER_STEPS || [];
 const DM = {}, BR = {}, TK = {};
 DOMAINS.forEach(d => DM[d.key] = d);
 BRANCHES.forEach(b => BR[b.key] = b);
 TASKS.forEach(t => TK[t.id] = t);
-const TARGET = TASKS.length, KEY = 'life-skilltree-v3';
+/** 按用户填的时长反推体力：15 分钟以内 3 点，30 分钟 5 点，1 小时 10 点，再长就是硬仗 15 点 */
+function powerForMinutes(min){ for(const [cap,p] of POWER_STEPS) if(min<=cap) return p; return POWER_LEVELS[POWER_LEVELS.length-1]; }
+const QSET = D.QSET || {};
+/** 自定义任务也要有那三个追问，沿用所属领域那一套（跟内建节点完全一致） */
+function questionsFor(t){
+  const set = QSET[t.dm];
+  if(!set || !set.length) return [{t:'收获',q:'做完「'+t.t+'」，你实际得到的东西和预期的一样吗？'}];
+  return set.map(x => ({ t:x.t, q:x.q.split('{T}').join(t.t) }));
+}
+// 自定义任务会往 TASKS 里追加，所以 TARGET 不是常量
+let TARGET = TASKS.length;
+const KEY = 'life-skilltree-v3';
 // 分享用的网址：在线打开就用当前地址；离线双击打开时 location 是 file://，
 // 那就回退到构建时写进来的正式网址，否则卡片上的二维码会指向一个本地路径。
 const SHARE_URL = (function(){
@@ -482,11 +497,43 @@ function blank(){
     todayDate:ymd(), todayTaskId:null, rerollsLeft:2, carryFrom:null,
     completions:[], freezes:0, freezeUsed:[], revives:3, revivesUsed:[],
     achievements:[], gems:0, gemsTotal:0,
+    custom:[], cardSeen:0,
     powerDate: null,
     settings:{ crt:'soft', theme:'green', nightGuard:true }, profileExported:false, blindShared:false };
 }
 let S = (()=>{ try{ const r=localStorage.getItem(KEY); if(r) return Object.assign(blank(), JSON.parse(r)); }catch(e){} return blank(); })();
 function save(){ try{ S.rev++; S.updatedAt=new Date().toISOString(); localStorage.setItem(KEY, JSON.stringify(S)); }catch(e){ toast('⚠️ 保存失败'); } }
+
+/* ---------------- 自定义任务创建卡 ----------------
+   攒够时长发一张创建卡，用卡可以往树里加一个自己定的节点。
+
+   两条设计上的取舍：
+   1) 按「时长」而不是「个数」发卡 —— 做一件两小时的硬仗，本来就该比做
+      三件五分钟的小事更接近下一张卡。个数会鼓励刷简单任务。
+   2) 单个任务最多按 180 分钟计入 —— 南极/北极那两条是 20160 分钟，
+      不封顶的话做完一条直接批发出 33 张，奖励瞬间失去意义。 */
+const CARD_MINUTES = 600;    // 每累计 600 分钟（10 小时）发一张
+const CARD_CAP_MIN = 180;    // 单个任务最多按 180 分钟计入
+function countedMinutes(){
+  return S.completions.reduce((a,c)=>{
+    const t = TK[c.id];
+    const m = (c.mins>0) ? c.mins : (t ? t.min : 0);
+    return a + Math.min(m, CARD_CAP_MIN);
+  }, 0);
+}
+const earnedCards = () => Math.floor(countedMinutes()/CARD_MINUTES);
+const cardsLeft = () => Math.max(0, earnedCards() - (S.custom||[]).length);
+function minutesToNextCard(){ const m=countedMinutes()%CARD_MINUTES; return CARD_MINUTES-m; }
+
+/** 把存下来的自定义任务接回 TASKS / TK，让它们能像内建节点一样被抽到、被点亮、被统计 */
+function registerCustom(){
+  (S.custom||[]).forEach(t=>{
+    if(TK[t.id] || !DM[t.dm] || !BR[t.br]) return;
+    TASKS.push(t); TK[t.id] = t;
+  });
+  TARGET = TASKS.length;
+}
+registerCustom();
 const doneIds = () => new Set(S.completions.map(c=>c.id));
 const doneCount = () => S.completions.length;
 const isDone = id => doneIds().has(id);
@@ -891,15 +938,17 @@ function renderToday(){
 
 function openCheckin(t){
   const dm=DM[t.dm];
+  // 自定义任务也走同一套追问；万一遇上没带 q 的旧数据，就地补一份，别让弹窗崩掉
+  const qs = (t.q && t.q.length) ? t.q : questionsFor(t);
   $('#modalBox').innerHTML =
     '<h3>点亮 · '+esc(t.t)+'</h3>'+
     '<div class="sp"><span class="badge dm">'+dm.icon+' '+esc(dm.name)+'</span><span class="badge">'+BR[t.br].icon+' '+esc(BR[t.br].name)+'</span>'+
-    '<span class="badge">'+t.tier+' 层 · '+esc(TIER_NAME[t.tier])+'</span><span class="badge">'+dur(t.min)+'</span></div>'+
+    '<span class="badge">'+(t.custom?'★ 自定义':t.tier+' 层 · '+esc(TIER_NAME[t.tier]))+'</span><span class="badge">'+dur(t.min)+'</span></div>'+
     '<div class="field"><label>做完感觉如何？（1 糟透了 → 5 太好了）</label><div class="stars" id="stars">'+
       [1,2,3,4,5].map(i=>'<button data-s="'+i+'">★</button>').join('')+'</div></div>'+
     '<div class="field"><label>实际花了多少分钟？</label><input type="number" id="mins" placeholder="'+t.min+'"></div>'+
     '<div class="qbox"><div class="qt">三个追问 · 点亮不是结束</div>'+
-      t.q.map((q,i)=>'<div class="qq">'+(i+1)+'. '+esc(q.q)+'</div><textarea data-qi="'+i+'" placeholder="'+esc(q.t)+'：写一两句就行"></textarea>').join('')+
+      qs.map((q,i)=>'<div class="qq">'+(i+1)+'. '+esc(q.q)+'</div><textarea data-qi="'+i+'" placeholder="'+esc(q.t)+'：写一两句就行"></textarea>').join('')+
     '</div>'+
     '<div class="tip">写完三问额外 +2 💎。跳过也能点亮——但至少写第一句，那是把体验变成能力的唯一动作。</div>'+
     '<div class="acts foot"><button class="btn primary" id="ok">收下这个节点</button><button class="btn ghost" id="cancel">再等等</button></div>';
@@ -908,7 +957,7 @@ function openCheckin(t){
   $('#cancel').onclick = closeModal;
   $('#ok').onclick = ()=>{
     const mins=parseInt($('#mins').value,10);
-    const answers=t.q.map((q,i)=>({t:q.t,q:q.q,a:(document.querySelector('textarea[data-qi="'+i+'"]').value||'').trim()}));
+    const answers=qs.map((q,i)=>({t:q.t,q:q.q,a:(document.querySelector('textarea[data-qi="'+i+'"]').value||'').trim()}));
     const wrote=answers.some(a=>a.a.length>=4);
     const cm=(isNaN(mins)||mins<=0)?t.min:mins;
     S.completions.push({id:t.id,date:ymd(),at:new Date().toISOString(),mood,mins:cm,answers,qDone:wrote});
@@ -919,10 +968,15 @@ function openCheckin(t){
     if(overNow) S.gems = (S.gems||0) + 2;   // 超额每天额外奖励 2 颗宝石
     S.gemsTotal += g;
     if(S.carryFrom) delete S.carryFrom;
+    // 创建卡按累计时长发：跨过 600 分钟的整数倍就 +1
+    const cardsNow = earnedCards();
+    const newCards = Math.max(0, cardsNow - (S.cardSeen||0));
+    if(cardsNow > (S.cardSeen||0)) S.cardSeen = cardsNow;
     const n=doneCount(), st=streak();
     save(); closeModal();
     toast('✓ 点亮 '+t.t+' · 体力 '+cost(t)+' 点（今日 '+spentAfter+'/'+DAILY_POWER+'）'+(wrote?' · 追问 +2 💎':''), 3600);
     if(clearedNow) setTimeout(()=>mega('⚡ 今日达标', '体力已耗尽 '+spentAfter+'/'+DAILY_POWER+' · 明天回满 15 点'), 700);
+    if(newCards>0) setTimeout(()=>mega('🎴 自定义任务创建卡 +'+newCards, '去「任务库」用它加一个自己的节点'), 1100);
     if(overNow) setTimeout(()=>mega('🔥 超额完成 +'+(spentAfter-DAILY_POWER)+' 点', '额外 +2 💎 · 这一天算赚到了'), 1500);
     const miles={1:'第一个节点',10:'十个节点',21:'二十一个',30:'三十个',50:'半程',66:'六十六个',80:'八十个',100:'全树点亮'};
     if(miles[n]) mega('🎉 '+n+' / '+TARGET, miles[n]+' · 连续 '+st.cur+' 天');
@@ -979,7 +1033,7 @@ function openPicker(){
       '<span style="width:3px;height:26px;border-radius:2px;background:'+DM[t.dm].color+'"></span>'+
       '<span>'+DM[t.dm].icon+'</span>'+
       '<span class="grow" style="font-size:13.5px">'+esc(t.t)+(isUnlocked(t.id)?'':' <span class="badge lock">需前置</span>')+'</span>'+
-      '<span class="tip mono">'+TIER_NAME[t.tier]+' · '+t.min+'分</span></div>').join('')
+      '<span class="tip mono">'+(t.custom?'★ 自定义':TIER_NAME[t.tier])+' · '+t.min+'分</span></div>').join('')
       : '<div class="tip" style="padding:16px">没有符合条件的节点，放宽筛选试试。</div>';
     Array.from($('#plist').children).forEach(r=>{ if(r.dataset.id) r.onclick=()=>{
       S.todayTaskId=r.dataset.id; delete S.carryFrom; save(); closeModal(); renderAll(); toast('已定为今天：'+TK[r.dataset.id].t); }; });
@@ -1021,6 +1075,7 @@ function renderFreeze(){
 
 /* ---------------- 技能树 ---------------- */
 function renderTree(){
+  renderCustom();
   const done=doneIds(), bs=branchStats();
   const fg=$('#fTag').value, fs=$('#fState').value, fd=$('#fDm').value, fw=$('#fWeek').value;
   let shown = 0;
@@ -1048,11 +1103,12 @@ function renderTree(){
           '<span class="bd">'+esc(b.desc)+'</span>'+
           '<span class="tip mono" style="margin-left:auto">'+bs[b.key].done+'/'+bs[b.key].total+'</span></div>'+
           '<div class="nodes">'+list.map(t=>{
-            const c=done.has(t.id), lk=!isUnlocked(t.id), now=t.id===S.todayTaskId&&!c;
-            return '<div class="node'+(c?' done':'')+(lk?' locked':'')+(now?' now':'')+(!c&&!lk?' next':'')+'" data-id="'+t.id+'" style="--acc:'+d.color+'">'+
-              '<span class="tier">'+esc(TIER_NAME[t.tier])+'</span>'+
+            const c=done.has(t.id), lk=!isUnlocked(t.id), now=t.id===S.todayTaskId&&!c, cp=compOf(t.id);
+            return '<div class="node'+(c?' done':'')+(lk?' locked':'')+(now?' now':'')+(!c&&!lk?' next':'')+(t.custom?' mine':'')+'" data-id="'+t.id+'" style="--acc:'+d.color+'">'+
+              '<span class="tier">'+(t.custom?'★ 自定义':esc(TIER_NAME[t.tier]))+'</span>'+
               '<div class="nt">'+esc(t.t)+'</div>'+
-              '<div class="nm"><span>'+t.id+'</span><span>'+t.min+'分</span>'+((c&&c.date)?'<span>'+String(c.date).slice(5)+'</span>':'')+'</div></div>';
+              // 这里原来写的是 c.date，但 c 是布尔值，所以日期一直没显示出来
+              '<div class="nm"><span>'+t.id+'</span><span>'+t.min+'分</span>'+((cp&&cp.date)?'<span>'+String(cp.date).slice(5)+'</span>':'')+'</div></div>';
           }).join('')+'</div></div>';
       }).join('')+'</div>';
   }).join('');
@@ -1182,6 +1238,88 @@ function drawMood(){
   c.fillText('5 · 太好了',6,28); c.fillText('1 · 糟透了',6,H-34);
 }
 
+/* ---------------- 自定义任务 ---------------- */
+function renderCustom(){
+  const box=$('#custompanel'); if(!box) return;
+  const left=cardsLeft(), mins=countedMinutes(), n=(S.custom||[]).length;
+  const pct=Math.min(100, Math.round((mins%CARD_MINUTES)/CARD_MINUTES*100));
+  box.innerHTML=
+    '<h2 class="sec">自定义任务创建卡 <span style="letter-spacing:0;text-transform:none;color:var(--amber)">'+left+' 张可用</span></h2>'+
+    '<p class="tip" style="margin-top:0">每累计 <b style="color:var(--phos)">'+CARD_MINUTES+' 分钟</b>的真实投入，发一张创建卡。'+
+      '用卡可以往科技树里加一个自己定的节点——它会和内建节点一样被抽到、被点亮、被统计。'+
+      '<br>单个任务最多按 '+CARD_CAP_MIN+' 分钟计入（不然跑一趟南极能一次批发出几十张）。</p>'+
+    '<div class="progressline" style="margin:14px 0 0"><div class="meta"><span>累计投入 '+mins+' 分钟 · 已发 '+earnedCards()+' 张 · 用了 '+n+' 张</span>'+
+      '<span>再攒 '+minutesToNextCard()+' 分钟得下一张</span></div>'+
+      '<div class="bar"><i style="width:'+pct+'%"></i></div></div>'+
+    '<div class="row" style="margin-top:14px">'+
+      '<button class="btn primary sm" id="btnNewCustom"'+(left<=0?' disabled':'')+'>'+(left>0?'用一张卡创建任务':'还没有创建卡')+'</button>'+
+      (n?'<span class="tip" style="margin:0">你已经加了 '+n+' 个自定义节点</span>':'')+
+    '</div>'+
+    (n?'<div style="margin-top:12px">'+S.custom.map(t=>{
+      const done=isDone(t.id);
+      return '<div style="display:flex;gap:9px;align-items:center;padding:7px 0;border-bottom:1px dashed rgba(255,255,255,.07)">'+
+        '<span class="badge dm" style="color:'+DM[t.dm].color+'">'+DM[t.dm].icon+' '+esc(DM[t.dm].name)+'</span>'+
+        '<span style="flex:1;font-size:13.5px;'+(done?'color:var(--phos)':'')+'">'+esc(t.t)+'</span>'+
+        '<span class="tip mono" style="margin:0">'+dur(t.min)+' · '+t.power+' 体力</span>'+
+        (done?'<span class="badge done">已点亮</span>':'<button class="btn xs" data-usecustom="'+t.id+'">设为今天</button>'+
+          '<button class="btn ghost xs" data-delcustom="'+t.id+'">删</button>')+'</div>';
+    }).join('')+'</div>':'');
+  $('#btnNewCustom').onclick=openNewCustom;
+  $$('[data-usecustom]').forEach(b=>b.onclick=()=>{
+    S.todayTaskId=b.dataset.usecustom; delete S.carryFrom; save(); go('today'); renderAll(); toast('已定为今天');
+  });
+  $$('[data-delcustom]').forEach(b=>b.onclick=()=>{
+    const id=b.dataset.delcustom, t=TK[id];
+    if(isDone(id)) return toast('已经点亮的节点删不掉——它是你的记录');
+    if(!confirm('删掉「'+t.t+'」？这张创建卡不会退回。')) return;
+    S.custom=S.custom.filter(x=>x.id!==id);
+    const i=TASKS.indexOf(t); if(i>=0) TASKS.splice(i,1);
+    delete TK[id]; TARGET=TASKS.length; save(); renderAll(); toast('已删除');
+  });
+}
+function openNewCustom(){
+  if(cardsLeft()<=0) return toast('还没有创建卡');
+  const dm0=DOMAINS[0].key;
+  $('#modalBox').innerHTML=
+    '<h3>创建自定义任务</h3>'+
+    '<div class="tip">会消耗 1 张创建卡（你还有 '+cardsLeft()+' 张）。建好之后它就是一个正常节点，能抽到、能点亮。</div>'+
+    '<div class="field"><label>任务名（4-16 字，不要标点，要具体）</label><input id="cT" maxlength="16" placeholder="例：把阳台那盆快死的绿萝救回来"></div>'+
+    '<div class="field"><label>怎么做（至少 25 字，写清楚步骤）</label><textarea id="cDo" rows="3" placeholder="别写「看一场电影」这种愿望——写清楚第一步做什么。"></textarea></div>'+
+    '<div class="field"><label>为什么值得做（可选）</label><input id="cWin" maxlength="40" placeholder="做完你会得到什么"></div>'+
+    '<div class="row"><div class="field grow"><label>领域</label><select id="cDm">'+
+      DOMAINS.map(d=>'<option value="'+d.key+'"'+(d.key===dm0?' selected':'')+'>'+d.icon+' '+esc(d.name)+'</option>').join('')+'</select></div>'+
+      '<div class="field grow"><label>放在哪条分支</label><select id="cBr"></select></div>'+
+      '<div class="field grow"><label>大概多少分钟</label><input type="number" id="cMin" value="30" min="5" max="2000"></div></div>'+
+    '<div class="tip" id="cPower"></div>'+
+    '<div class="acts" style="margin-top:16px"><button class="btn primary" id="cOk">建好它</button><button class="btn ghost" id="cCancel">算了</button></div>';
+  const fillBr=()=>{ const k=$('#cDm').value;
+    $('#cBr').innerHTML=BRANCHES.filter(b=>b.dm===k).map(b=>'<option value="'+b.key+'">'+b.icon+' '+esc(b.name)+'</option>').join(''); };
+  const showPower=()=>{ const m=parseInt($('#cMin').value,10)||30;
+    $('#cPower').innerHTML='这个时长会消耗 <b style="color:var(--phos)">'+powerForMinutes(m)+' 点</b>体力（每天 15 点）。'; };
+  fillBr(); showPower();
+  $('#cDm').onchange=()=>{ fillBr(); };
+  $('#cMin').oninput=showPower;
+  $('#cCancel').onclick=closeModal;
+  $('#modal').classList.add('on');
+  $('#cOk').onclick=()=>{
+    const t=($('#cT').value||'').trim(), what=($('#cDo').value||'').trim(), win=($('#cWin').value||'').trim();
+    const min=Math.max(5, Math.min(2000, parseInt($('#cMin').value,10)||30));
+    if(t.length<4 || t.length>16) return toast('任务名要 4-16 个字');
+    if(/[，。！？、；：""''（）《》,.!?;:()\[\]{}]/.test(t)) return toast('任务名里不要带标点');
+    if(what.length<25) return toast('「怎么做」至少写 25 个字（现在 '+what.length+' 个）');
+    if(TASKS.some(x=>x.t===t)) return toast('已经有同名节点了');
+    if(cardsLeft()<=0) return toast('创建卡不够了');
+    // 自定义节点的 id 用 C 开头，避开内建的 T### 编号
+    let n=1; while(TK['C'+String(n).padStart(3,'0')]) n++;
+    const nt={ id:'C'+String(n).padStart(3,'0'), t, do:what, win:win||'这件事是我自己决定要做的。',
+      dm:$('#cDm').value, br:$('#cBr').value, min, power:powerForMinutes(min), tier:1,
+      tags:['自定义'], week:0, custom:true, created:ymd() };
+    nt.q = questionsFor(nt);
+    S.custom.push(nt); registerCustom(); save();
+    closeModal(); renderAll();
+    mega('🎴 新节点已进树', '去「任务库」找它，或者等抽卡抽到');
+  };
+}
 /* ---------------- 能力档案 ---------------- */
 function profileSentence(){
   const ds=domStats(), bs0=branchStats(), st=streak(), n=doneCount();
@@ -1531,6 +1669,8 @@ function renderSettings(){
     '<b>体力</b>：每天回满 15 点，按节点时长扣 3/5/10/15。<b>耗尽就是今天的达标线</b>，可继续超额拿奖励。',
     '<b>熔断卡</b>：连续打卡每满 7 天自动攒 1 张（最多 3 张）。某天做不到，用掉一张，连击不清零。',
     '<b>复活卡 3 张</b>：真断了用一张补回来。用完也不必自责——那是该减量的信号。',
+    '<b>自定义任务创建卡</b>：每累计 '+CARD_MINUTES+' 分钟真实投入发一张（单个任务最多按 '+CARD_CAP_MIN+' 分钟计入）。'+
+      '用它在「任务库」里加一个自己定的节点，它会和内建节点一样被抽到、被点亮、被统计。',
     '<b>夜间保护</b>：22:00 后只发轻量的睡前节点。你在治失眠，别跟自己的觉作对。',
     '<b>'+TARGET+' 个节点不是终点</b>：导出能力档案，从里面挑 20 个变成你的日常——新鲜事的使命是变成你的一部分。',
   ].map(x=>'<li style="padding:9px 0 9px 26px;position:relative;border-bottom:1px dashed rgba(255,255,255,.07)">'+
