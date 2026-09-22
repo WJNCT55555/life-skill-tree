@@ -1,0 +1,1386 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-crt="soft">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0b0f0d">
+<meta name="description" content="人生技能树：24 条路线、100 个节点，每天点亮一个从没做过的节点。">
+<title>人生技能树 · 100 个节点</title>
+<style>
+:root{
+  --bg:#05070a; --panel:rgba(255,255,255,.035); --panel2:rgba(255,255,255,.07);
+  --line:rgba(140,200,255,.13); --line2:rgba(140,200,255,.26);
+  --txt:#e6f0ea; --dim:#8ca79b; --dim2:#5a6f66;
+  --phos:#3ddc84; --phos-d:#12b76a; --amber:#ffc857; --amber-d:#f0a45c; --teal:#4fd1c5; --bad:#ff5f6d;
+  --grad:linear-gradient(180deg,color-mix(in srgb,var(--phos) 92%,#fff),var(--phos-d));
+  --grad-amber:linear-gradient(180deg,#ffd97a,var(--amber-d));
+  --r:5px; --r2:4px; --sh:none;
+  --mono:"Cascadia Mono",ui-monospace,SFMono-Regular,Menlo,Consolas,"Liberation Mono",monospace;
+  --sans:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Hiragino Sans GB","Microsoft YaHei","Noto Sans CJK SC",sans-serif;
+  --font:var(--sans); --lh:1.7;
+  --glow:0 0 12px color-mix(in srgb,var(--phos) 45%,transparent);
+}
+/* 三色主题：蓝 / 绿 / 橙（默认绿） */
+/* 三色主题：绿 / 蓝 / 橙（默认绿） */
+html[data-theme="blue"]{
+  --phos:#4da3ff; --phos-d:#1f6fd0; --amber:#7fd4ff; --amber-d:#3fa8e0; --teal:#5ce1e6;
+  --line:rgba(140,200,255,.16); --line2:rgba(140,200,255,.32);
+  --txt:#e8f1fb; --dim:#8ba3bd; --dim2:#5c6f85;
+}
+html[data-theme="amber"]{
+  --phos:#ffa64d; --phos-d:#e07820; --amber:#ffd166; --amber-d:#f0a45c; --teal:#ffc98a;
+  --line:rgba(255,190,120,.16); --line2:rgba(255,190,120,.32);
+  --txt:#fbf1e6; --dim:#b39a80; --dim2:#7d6a56;
+}
+html[data-crt="hard"]{--font:var(--mono);--lh:1.68}
+html[data-crt="off"]{--r:8px;--r2:7px}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;padding:0}
+body{font-family:var(--font);line-height:var(--lh);font-size:15px;color:var(--txt);
+  background:
+    linear-gradient(color-mix(in srgb,var(--phos) 5%,transparent) 1px,transparent 1px) 0 0/100% 34px,
+    linear-gradient(90deg,color-mix(in srgb,var(--phos) 4%,transparent) 1px,transparent 1px) 0 0/34px 100%,
+    radial-gradient(1200px 700px at 50% -20%,color-mix(in srgb,var(--phos) 7%,transparent),transparent 70%),
+    var(--bg);
+  background-attachment:fixed;min-height:100vh;overflow-x:hidden}
+body::after{content:"";position:fixed;inset:0;pointer-events:none;z-index:9;
+  background:repeating-linear-gradient(to bottom,rgba(0,0,0,.16) 0 1px,transparent 1px 3px);opacity:.35}
+html[data-crt="off"] body::after{display:none}
+html[data-crt="hard"] body::after{opacity:.75;background:repeating-linear-gradient(to bottom,rgba(0,0,0,.34) 0 1px,transparent 1px 3px)}
+.wrap{position:relative;z-index:1;max-width:1040px;margin:0 auto;padding:22px 16px 96px}
+
+.card{background:var(--panel);border:1px solid var(--line);border-radius:var(--r);padding:18px;position:relative}
+.card::before,.card::after{content:"";position:absolute;width:7px;height:7px;border:1px solid color-mix(in srgb,var(--phos) 55%,transparent);pointer-events:none}
+.card::before{left:-1px;top:-1px;border-right:0;border-bottom:0}
+.card::after{right:-1px;bottom:-1px;border-left:0;border-top:0}
+.card+.card{margin-top:14px}
+button.btn{font-family:var(--mono);font-size:13px;font-weight:600;padding:10px 18px;border-radius:var(--r);cursor:pointer;
+  border:1px solid var(--line2);background:var(--panel2);color:var(--txt);transition:.12s;letter-spacing:.4px}
+button.btn:hover{background:rgba(255,255,255,.14)}
+button.btn.primary{background:color-mix(in srgb,var(--phos) 16%,transparent);color:var(--phos);
+  border-color:color-mix(in srgb,var(--phos) 55%,transparent);box-shadow:var(--glow)}
+button.btn.amber{background:color-mix(in srgb,var(--amber) 16%,transparent);color:var(--amber);border-color:color-mix(in srgb,var(--amber) 52%,transparent)}
+button.btn.ghost{background:transparent;color:var(--dim)}
+button.btn:disabled{opacity:.38;cursor:not-allowed}
+button.btn.sm{padding:8px 13px;font-size:12.5px;border-radius:9px}
+button.btn.xs{padding:5px 10px;font-size:11.5px;border-radius:8px}
+h2.sec{font-size:12px;letter-spacing:2.6px;text-transform:uppercase;color:var(--phos);margin:24px 0 12px;display:flex;align-items:center;gap:10px;font-family:var(--mono);font-weight:600}
+h2.sec::before{content:">";color:var(--phos-d);font-weight:700}
+h2.sec::after{content:"";flex:1;height:1px;background:repeating-linear-gradient(90deg,var(--line2) 0 5px,transparent 5px 10px)}
+h2.sec:first-child{margin-top:0}
+.tip{font-size:12px;color:var(--dim2);line-height:1.75}
+.mono{font-family:var(--mono);font-variant-numeric:tabular-nums}
+.row{display:flex;gap:9px;flex-wrap:wrap;align-items:center}
+.grow{flex:1;min-width:150px}
+input,select,textarea{font-family:inherit;width:100%;background:rgba(0,0,0,.34);border:1px solid var(--line);color:var(--txt);border-radius:11px;padding:10px 12px;font-size:14px;outline:none}
+input:focus,select:focus,textarea:focus{border-color:color-mix(in srgb,var(--phos) 52%,transparent)}
+.field{margin:13px 0}.field label{display:block;font-size:12px;color:var(--dim);margin-bottom:6px}
+
+header.top{display:flex;gap:12px;align-items:center;justify-content:space-between;flex-wrap:wrap;margin-bottom:12px;border-bottom:1px solid var(--line);padding-bottom:12px}
+.brand{display:flex;gap:12px;align-items:center}
+.seal{width:42px;height:42px;flex:0 0 42px;border-radius:var(--r);display:grid;place-items:center;font-weight:800;font-size:16px;
+  font-family:var(--mono);background:color-mix(in srgb,var(--phos) 12%,transparent);color:var(--phos);
+  border:1px solid color-mix(in srgb,var(--phos) 50%,transparent);box-shadow:var(--glow)}
+h1{margin:0;font-size:clamp(16px,3vw,20px);line-height:1.25;font-family:var(--mono);letter-spacing:.5px}
+h1 small{display:block;font-weight:400;font-size:11px;color:var(--dim2);letter-spacing:1.2px;margin-top:3px;font-family:var(--mono)}
+.cursor{display:inline-block;width:7px;height:13px;background:var(--phos);margin-left:5px;vertical-align:-2px;animation:blink 1.15s steps(1) infinite}
+@keyframes blink{0%,49%{opacity:1}50%,100%{opacity:0}}
+.hud{display:flex;gap:7px;flex-wrap:wrap}
+.chip{background:rgba(0,0,0,.3);border:1px solid var(--line);border-radius:3px;padding:5px 10px;font-size:11.5px;color:var(--dim);
+  display:flex;align-items:center;gap:6px;white-space:nowrap;font-family:var(--mono)}
+.chip b{color:var(--txt);font-size:13.5px}
+.chip.green{border-color:color-mix(in srgb,var(--phos) 45%,transparent);color:var(--phos);background:color-mix(in srgb,var(--phos) 10%,transparent)}
+.chip.amber{border-color:color-mix(in srgb,var(--amber) 45%,transparent);color:var(--amber);background:color-mix(in srgb,var(--amber) 10%,transparent)}
+.statusbar{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:14px;font-size:12px;color:var(--dim)}
+.energy{display:flex;gap:3px;align-items:center}
+.energy i{width:11px;height:10px;border-radius:1px;background:rgba(255,255,255,.11)}
+.energy i.on{background:var(--phos);box-shadow:0 0 8px color-mix(in srgb,var(--phos) 60%,transparent)}
+.energy.full i{background:var(--amber);box-shadow:0 0 8px color-mix(in srgb,var(--amber) 62%,transparent)}
+.energy i.over{background:var(--bad);box-shadow:0 0 9px color-mix(in srgb,var(--bad) 70%,transparent)}
+.pw{font-family:var(--mono);font-size:11.5px;padding:3px 9px;border-radius:8px;border:1px solid var(--line);color:var(--dim)}
+.pw.tight{color:var(--amber);border-color:color-mix(in srgb,var(--amber) 42%,transparent);background:color-mix(in srgb,var(--amber) 10%,transparent)}
+.pw.done{color:var(--phos);border-color:color-mix(in srgb,var(--phos) 42%,transparent);background:color-mix(in srgb,var(--phos) 10%,transparent)}
+.pw.over{color:var(--bad);border-color:color-mix(in srgb,var(--bad) 46%,transparent);background:color-mix(in srgb,var(--bad) 12%,transparent)}
+.bar{height:5px;border-radius:2px;background:rgba(255,255,255,.08);overflow:hidden}
+.bar>i{display:block;height:100%;width:0;background:var(--phos);border-radius:1px;transition:width .7s cubic-bezier(.2,.9,.2,1);box-shadow:var(--glow)}
+.progressline{margin-bottom:18px}
+.progressline .meta{display:flex;justify-content:space-between;font-size:11.5px;color:var(--dim);margin-bottom:6px;font-family:var(--mono)}
+
+nav.tabs{display:flex;gap:0;padding:0;background:rgba(0,0,0,.28);border:1px solid var(--line);border-radius:var(--r);margin-bottom:18px;overflow-x:auto;scrollbar-width:none}
+nav.tabs::-webkit-scrollbar{display:none}
+nav.tabs button{flex:1;min-width:max-content;background:transparent;border:0;border-right:1px solid var(--line);color:var(--dim);padding:10px 14px;font-size:12.5px;font-family:var(--mono);cursor:pointer;white-space:nowrap;letter-spacing:.4px}
+nav.tabs button:last-child{border-right:0}
+nav.tabs button[aria-selected="true"]{background:color-mix(in srgb,var(--phos) 14%,transparent);color:var(--phos);font-weight:700;
+  box-shadow:inset 0 -2px 0 0 var(--phos)}
+section.view{display:none;animation:fade .35s ease}
+section.view.on{display:block}
+@keyframes fade{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+
+/* ---------- 今日节点 ---------- */
+.quest{position:relative;overflow:hidden;border-radius:var(--r);padding:22px;border:1px solid var(--line2);
+  background:linear-gradient(180deg,color-mix(in srgb,var(--phos) 5%,transparent),rgba(0,0,0,.18))}
+.quest::after{content:"";position:absolute;inset:0;pointer-events:none;
+  background:repeating-linear-gradient(to bottom,color-mix(in srgb,var(--acc,var(--phos)) 5%,transparent) 0 1px,transparent 1px 6px)}
+.qtop{display:flex;gap:7px;flex-wrap:wrap;align-items:center;margin-bottom:13px;position:relative}
+.badge{font-size:10.5px;padding:3px 8px;border-radius:3px;border:1px solid var(--line);color:var(--dim);background:rgba(0,0,0,.3);white-space:nowrap;font-family:var(--mono);letter-spacing:.3px}
+.badge.dm{color:var(--acc);border-color:color-mix(in srgb,var(--acc) 45%,transparent);background:color-mix(in srgb,var(--acc) 13%,transparent)}
+.badge.lock{color:var(--amber);border-color:color-mix(in srgb,var(--amber) 45%,transparent);background:color-mix(in srgb,var(--amber) 12%,transparent)}
+.badge.done{color:var(--phos);border-color:color-mix(in srgb,var(--phos) 45%,transparent)}
+.qtitle{font-size:clamp(20px,4.2vw,28px);font-weight:800;line-height:1.35;margin:0 0 14px;position:relative;letter-spacing:.3px}
+.qtitle::before{content:"$ ";color:var(--phos-d);font-family:var(--mono);font-weight:700}
+.qdo,.qwin{position:relative;font-size:14.5px;margin:0 0 10px;color:#d3e8dc}
+.qwin{color:var(--amber);font-size:13.5px}
+.qdo b,.qwin b{color:var(--dim);font-weight:600;margin-right:8px;font-size:12px;letter-spacing:1px}
+.metarow{display:flex;gap:6px;flex-wrap:wrap;margin:15px 0 19px;position:relative}
+.m{font-size:11px;color:var(--dim);background:rgba(0,0,0,.3);border:1px solid var(--line);padding:3px 8px;border-radius:3px;font-family:var(--mono)}
+.acts{display:flex;gap:9px;flex-wrap:wrap;position:relative}
+.notice{margin:-4px 0 15px;padding:10px 14px;border-radius:11px;font-size:13px;
+  background:color-mix(in srgb,var(--amber) 10%,transparent);border:1px solid color-mix(in srgb,var(--amber) 32%,transparent);color:var(--amber)}
+.empty{padding:30px 10px;text-align:center}
+.empty .big{font-size:46px;margin-bottom:10px}
+.empty p{color:var(--dim);font-size:14px;max-width:520px;margin:0 auto 18px}
+
+/* ---------- 科技树 ---------- */
+.tree{margin-bottom:20px}
+.tree .dh{display:flex;align-items:center;gap:10px;margin-bottom:10px;flex-wrap:wrap}
+.tree .dh .dn{font-weight:800;font-size:15px}
+.tree .dh .dc{font-size:11.5px;color:var(--dim2);font-family:var(--mono)}
+.branch{border-left:2px solid color-mix(in srgb,var(--acc) 40%,transparent);padding-left:13px;margin:12px 0 16px}
+.branch .bh{display:flex;align-items:center;gap:8px;margin-bottom:8px;flex-wrap:wrap}
+.branch .bn{font-size:13.5px;font-weight:700}
+.branch .bd{font-size:11.5px;color:var(--dim2)}
+.nodes{display:flex;gap:9px;flex-wrap:wrap;align-items:stretch}
+.node{position:relative;width:calc(25% - 7px);min-width:132px;border-radius:var(--r);border:1px solid var(--line);
+  background:rgba(255,255,255,.025);padding:10px;cursor:pointer;transition:.15s;overflow:hidden}
+@media(max-width:720px){.node{width:calc(50% - 5px)}}
+.node:hover{transform:translateY(-2px);border-color:color-mix(in srgb,var(--phos) 55%,transparent);z-index:3}
+.node .nt{font-size:12.5px;font-weight:600;line-height:1.4;margin:6px 0 5px;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
+.node .nm{font-size:10.5px;color:var(--dim2);font-family:var(--mono);display:flex;gap:6px;flex-wrap:wrap}
+.node .tier{position:absolute;top:0;right:0;font-size:9px;font-family:var(--mono);padding:2px 6px;border-bottom-left-radius:3px;background:rgba(0,0,0,.42);color:var(--dim);letter-spacing:.4px}
+.node.done{background:linear-gradient(150deg,color-mix(in srgb,var(--acc) 82%,#000),color-mix(in srgb,var(--acc) 45%,#000));border-color:transparent}
+.node.done .nt,.node.done .nm,.node.done .tier{color:#06130c}
+.node.done .tier{background:rgba(0,0,0,.22)}
+.node.locked{opacity:.45;border-style:dashed;border-color:color-mix(in srgb,var(--amber) 40%,transparent)}
+.node.locked::after{content:"🔒";position:absolute;top:4px;left:6px;font-size:12px}
+.node.next{border-color:color-mix(in srgb,var(--phos) 45%,transparent);box-shadow:0 0 0 1px color-mix(in srgb,var(--phos) 18%,transparent)}
+.node.now{border-color:var(--phos);box-shadow:0 0 0 2px color-mix(in srgb,var(--phos) 34%,transparent)}
+.legend{display:flex;gap:14px;flex-wrap:wrap;margin-top:14px;font-size:11.5px;color:var(--dim)}
+.legend i{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:5px;vertical-align:-1px}
+
+/* ---------- 成就 / 领域 ---------- */
+.achgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(168px,1fr));gap:11px}
+.ach{border:1px solid var(--line);border-radius:14px;padding:13px;background:rgba(255,255,255,.03);display:flex;gap:10px;position:relative;overflow:hidden}
+.ach .aic{font-size:21px;filter:grayscale(1) opacity(.3)}
+.ach .an{font-size:13px;font-weight:700;margin-bottom:2px}
+.ach .ad{font-size:11px;color:var(--dim2);line-height:1.45}
+.ach.un{border-color:color-mix(in srgb,var(--amber) 42%,transparent);background:linear-gradient(150deg,color-mix(in srgb,var(--amber) 12%,transparent),transparent)}
+.ach.un .aic{filter:none}.ach.un .an{color:var(--amber)}
+.ach.un::before{content:"✓";position:absolute;top:0;right:0;font-size:10px;background:var(--grad-amber);color:#2a1a06;padding:2px 8px;border-bottom-left-radius:9px;font-weight:800}
+.dmcard{border:1px solid var(--line);border-radius:14px;padding:16px;background:rgba(255,255,255,.03);border-left:4px solid var(--acc)}
+.dmcard .dt{display:flex;align-items:center;gap:9px;flex-wrap:wrap}
+.dmcard .dn2{font-size:15px;font-weight:700}
+.dmcard .dc2{font-size:11.5px;color:var(--dim2);font-family:var(--mono);margin-left:auto}
+.dmcard .dd{font-size:12px;color:var(--dim2);margin-top:5px;line-height:1.6}
+.dmcard .dbr{display:flex;gap:7px;flex-wrap:wrap;margin-top:11px}
+
+/* ---------- 统计 ---------- */
+.statgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:11px}
+.stat{background:rgba(255,255,255,.03);border:1px solid var(--line);border-radius:13px;padding:14px}
+.stat .v{font-size:23px;font-weight:800;font-family:var(--mono)}
+.stat .k{font-size:11px;color:var(--dim);margin-top:2px}
+canvas{width:100%;max-width:340px;display:block;margin:0 auto}
+.dmbar{margin:10px 0}
+.dmbar .l{display:flex;justify-content:space-between;font-size:12.5px;margin-bottom:4px}
+.dmbar .l span:last-child{color:var(--dim);font-family:var(--mono);font-size:11.5px}
+.dmbar .t{height:5px;border-radius:99px;background:rgba(255,255,255,.08);overflow:hidden}
+.dmbar .t>i{display:block;height:100%;border-radius:99px}
+
+/* ---------- GitHub 风格热力图 ---------- */
+.heat{display:inline-block;min-width:100%}
+.heat .hmonths{display:flex;gap:3px;margin:0 0 5px 26px;font-size:10.5px;color:var(--dim2);font-family:var(--mono)}
+.heat .hmonths span{flex:0 0 auto}
+.heat .hbody{display:flex;gap:5px}
+.heat .hdays{display:flex;flex-direction:column;gap:3px;font-size:10px;color:var(--dim2);font-family:var(--mono);width:22px;padding-top:1px}
+.heat .hdays span{height:15px;line-height:15px}
+.heat .hgrid{display:flex;gap:3px}
+.heat .hcol{display:flex;flex-direction:column;gap:3px}
+.heat .hcell{width:14px;height:14px;border-radius:2px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.035);transition:.12s}
+@media(max-width:640px){.heat .hcell{width:12px;height:12px}.heat .hdays span{height:12px;line-height:12px}}
+.heat .hcell.l1{background:color-mix(in srgb,var(--phos) 26%,transparent);border-color:transparent}
+.heat .hcell.l2{background:color-mix(in srgb,var(--phos) 50%,transparent);border-color:transparent}
+.heat .hcell.l3{background:color-mix(in srgb,var(--phos) 74%,transparent);border-color:transparent}
+.heat .hcell.l4{background:var(--phos);border-color:transparent;box-shadow:0 0 7px color-mix(in srgb,var(--phos) 45%,transparent)}
+.heat .hcell.today{outline:2px solid var(--amber);outline-offset:1px}
+.heat .hcell.future{opacity:.34}
+.heat .hcell:hover{transform:scale(1.25);border-color:var(--phos);z-index:2;position:relative}
+.heatlegend{display:flex;align-items:center;gap:6px;font-size:11.5px;color:var(--dim2);flex-wrap:wrap}
+.heatlegend i{display:inline-block;width:13px;height:13px;border-radius:3px;background:rgba(255,255,255,.055)}
+.heatlegend i.l1{background:color-mix(in srgb,var(--phos) 26%,transparent)}
+.heatlegend i.l2{background:color-mix(in srgb,var(--phos) 50%,transparent)}
+.heatlegend i.l3{background:color-mix(in srgb,var(--phos) 74%,transparent)}
+.heatlegend i.l4{background:var(--phos)}
+
+/* ---------- 主线周 ---------- */
+.weekcard{border:1px solid var(--line);border-radius:14px;padding:14px;margin-bottom:11px;background:rgba(255,255,255,.03);transition:.2s}
+.weekcard.cur{border-color:color-mix(in srgb,var(--phos) 50%,transparent);background:color-mix(in srgb,var(--phos) 7%,transparent);box-shadow:0 0 0 1px color-mix(in srgb,var(--phos) 20%,transparent)}
+.weekcard.done{opacity:.72}
+.weekcard .wt{display:flex;align-items:center;gap:9px;flex-wrap:wrap}
+.weekcard .wn2{font-size:14.5px;font-weight:700}
+.weekcard .wd{font-size:12px;color:var(--dim2);margin-top:3px}
+.weekcard .wp{margin-left:auto;font-size:11.5px;color:var(--dim);font-family:var(--mono)}
+.weekcard .wlist{display:flex;gap:6px;flex-wrap:wrap;margin-top:10px}
+.wpill{font-size:11.5px;padding:4px 9px;border-radius:8px;border:1px solid var(--line);background:rgba(0,0,0,.24);color:var(--dim);font-family:var(--mono)}
+.wpill.done{color:var(--phos);border-color:color-mix(in srgb,var(--phos) 42%,transparent);background:color-mix(in srgb,var(--phos) 10%,transparent)}
+.curweek{display:flex;align-items:center;gap:11px;flex-wrap:wrap}
+.curweek .cwicon{font-size:22px}
+.curweek .cwname{font-size:15px;font-weight:700}
+.curweek .cwdesc{font-size:12.5px;color:var(--dim2);margin-top:2px}
+.curweek .cwprog{margin-left:auto;text-align:right;font-family:var(--mono);font-size:12px;color:var(--dim)}
+
+/* ---------- 任务名简洁有趣：略小一号更好扫读 ---------- */
+.node .nt{font-size:13px;font-weight:600}
+
+/* ---------- 弹窗 ---------- */
+.modal{position:fixed;inset:0;z-index:80;display:none;align-items:center;justify-content:center;padding:16px;background:rgba(3,6,4,.8);backdrop-filter:blur(6px)}
+.modal.on{display:flex;animation:fade .22s ease}
+.modal .box{background:linear-gradient(180deg,color-mix(in srgb,var(--phos) 4%,#080b0c),#06080a);border:1px solid var(--line2);border-radius:var(--r);max-width:620px;width:100%;max-height:88vh;overflow:auto;padding:20px}
+.modal h3{margin:0 0 6px;font-size:18px}
+.modal .sp{display:flex;gap:6px;flex-wrap:wrap;margin:12px 0 14px}
+.modal p{font-size:14px;color:#d3e8dc;margin:9px 0}
+.modal p b{color:var(--dim);font-size:12px;letter-spacing:1px;margin-right:8px}
+.modal .foot{position:sticky;bottom:0;padding-top:12px;background:linear-gradient(transparent,#080c0a 45%)}
+.qbox{background:color-mix(in srgb,var(--phos) 6%,transparent);border:1px solid var(--line2);border-radius:14px;padding:15px;margin:13px 0}
+.qbox .qt{font-size:12px;color:var(--phos);letter-spacing:1.4px;margin-bottom:8px;font-family:var(--mono)}
+.qbox .qq{font-size:14px;color:#e2f2e9;margin:10px 0 7px}
+.stars{display:flex;gap:6px}
+.stars button{background:rgba(0,0,0,.3);border:1px solid var(--line);width:42px;height:42px;border-radius:11px;font-size:18px;color:var(--dim2);cursor:pointer;display:grid;place-items:center}
+.stars button.on{color:var(--amber);border-color:color-mix(in srgb,var(--amber) 50%,transparent);background:color-mix(in srgb,var(--amber) 14%,transparent)}
+#toast{position:fixed;left:50%;bottom:22px;transform:translate(-50%,140%);z-index:120;background:#080c0b;
+  border:1px solid color-mix(in srgb,var(--phos) 45%,transparent);color:var(--txt);padding:11px 18px;border-radius:var(--r);font-size:13px;
+  font-family:var(--mono);box-shadow:var(--glow);transition:transform .32s cubic-bezier(.2,.9,.2,1);max-width:90vw;text-align:center}
+#toast.on{transform:translate(-50%,0)}
+#mega{position:fixed;inset:0;z-index:110;display:none;place-items:center;pointer-events:none}
+#mega.on{display:grid}
+#mega .m{background:color-mix(in srgb,var(--amber) 18%,#07090a);border:1px solid var(--amber);color:var(--amber);padding:20px 32px;border-radius:var(--r);text-align:center;max-width:88vw;
+  font-family:var(--mono);box-shadow:0 0 40px color-mix(in srgb,var(--amber) 30%,transparent);animation:mega 2.6s cubic-bezier(.2,.9,.2,1) forwards}
+#mega .m .t{font-size:23px;font-weight:900}
+#mega .m .s{font-size:13px;margin-top:6px;font-weight:600;opacity:.85}
+@keyframes mega{0%{transform:scale(.62) translateY(26px);opacity:0}12%{transform:scale(1.05);opacity:1}80%{transform:scale(1);opacity:1}100%{transform:scale(1.03) translateY(-16px);opacity:0}}
+.nightwarn{display:none;margin-bottom:14px;border:1px solid color-mix(in srgb,var(--teal) 34%,transparent);border-radius:13px;padding:12px 15px;font-size:13px;color:#c9f0ea;background:color-mix(in srgb,var(--teal) 9%,transparent)}
+.nightwarn.on{display:block}
+footer.ft{margin-top:36px;text-align:center;font-size:11px;color:var(--dim2);line-height:1.9}
+.kbd{font-family:var(--mono);font-size:11px;background:rgba(255,255,255,.08);border:1px solid var(--line);border-radius:5px;padding:2px 6px}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <div class="brand">
+      <div class="seal">&gt;_</div>
+      <h1>人生技能树<span class="cursor"></span><small id="subtitle">九领域 · 27 条分支 · 297 个节点</small></h1>
+    </div>
+    <div class="hud" id="hud"></div>
+  </header>
+
+  <div class="statusbar">
+    <span id="energyBox" class="energy"></span>
+    <span id="statusText" class="mono"></span>
+  </div>
+
+  <div class="progressline">
+    <div class="meta"><span id="pgLabel">已点亮 0 / 100</span><span id="pgSub"></span></div>
+    <div class="bar"><i id="pgBar"></i></div>
+  </div>
+
+  <nav class="tabs" role="tablist" id="tabs">
+    <button role="tab" data-v="today" aria-selected="true">今日</button>
+    <button role="tab" data-v="weeks" aria-selected="false">主线</button>
+    <button role="tab" data-v="tree" aria-selected="false">任务库</button>
+    <button role="tab" data-v="domains" aria-selected="false">领域</button>
+    <button role="tab" data-v="ach" aria-selected="false">成就</button>
+    <button role="tab" data-v="stats" aria-selected="false">统计</button>
+    <button role="tab" data-v="profile" aria-selected="false">能力档案</button>
+    <button role="tab" data-v="about" aria-selected="false">设置</button>
+  </nav>
+
+  <div class="nightwarn" id="nightwarn"></div>
+
+  <section class="view on" id="v-today">
+    <div class="card" id="weekcard" style="margin-bottom:14px"></div>
+    <div class="quest" id="quest"></div>
+    <div class="card" id="freezepanel" style="display:none"></div>
+    <div class="card" id="reviewpanel" style="display:none"></div>
+    <div class="card"><h2 class="sec">今日心法</h2><p id="quote" style="margin:0;color:#cfe6da;font-size:13.5px;line-height:1.9;font-style:italic"></p></div>
+  </section>
+
+  <section class="view" id="v-weeks">
+    <div class="card">
+      <h2 class="sec">15 个主题周 · 105 天主线</h2>
+      <p class="tip" style="margin-top:0">第 N 周做第 N 组节点。抽卡会优先发你本周的节点——但你也可以随时去「任务库」自己挑任何已解锁的。</p>
+      <div id="weekswrap" style="margin-top:14px"></div>
+    </div>
+  </section>
+
+  <section class="view" id="v-tree">
+    <div class="card">
+      <h2 class="sec">任务库 <span id="libCount" style="letter-spacing:0;text-transform:none;color:var(--dim)"></span></h2>
+      <div class="row" style="margin-bottom:14px">
+        <select id="fWeek" class="grow"><option value="">全部周次</option></select>
+        <select id="fTag" class="grow"><option value="">全部标签</option></select>
+        <select id="fState" class="grow"><option value="">全部状态</option><option value="done">已点亮</option><option value="avail">可做</option><option value="locked">未解锁</option></select>
+        <select id="fDm" class="grow"><option value="">全部领域</option></select>
+      </div>
+      <div id="treewrap"></div>
+      <div class="legend">
+        <span><i style="background:linear-gradient(135deg,var(--phos),var(--phos-d))"></i>已点亮</span>
+        <span><i style="background:transparent;border:1px solid var(--phos)"></i>可做</span>
+        <span><i style="background:rgba(255,255,255,.06);border:1px dashed var(--amber)"></i>未解锁（先做本领域上一层 2 个）</span>
+      </div>
+    </div>
+  </section>
+
+  <section class="view" id="v-domains">
+    <div class="card">
+      <h2 class="sec">九大领域</h2>
+      <p class="tip" style="margin-top:0">每个领域三条分支，每条 10 个节点。分支名就是这条线在练什么——不再有额外的"属性"层。</p>
+      <div id="domaingrid" style="margin-top:14px;display:grid;gap:11px"></div>
+    </div>
+  </section>
+
+  <section class="view" id="v-ach">
+    <div class="card"><h2 class="sec">成就 <span id="achCount" style="letter-spacing:0;text-transform:none;color:var(--amber)"></span></h2><div class="achgrid" id="achgrid"></div></div>
+  </section>
+
+  <section class="view" id="v-stats">
+    <div class="card">
+      <h2 class="sec">每日活跃</h2>
+      <p class="tip" style="margin-top:0">每一格是一天。从你开始的第 1 天算起，横轴是 15 周，纵轴是周一到周日。</p>
+      <div id="heatwrap" style="margin-top:16px;overflow-x:auto"></div>
+      <div id="heatlegend" style="margin-top:12px"></div>
+      <div class="statgrid" id="heatstats" style="margin-top:16px"></div>
+    </div>
+    <div class="card"><h2 class="sec">九维能力</h2><canvas id="radar" width="680" height="680"></canvas>
+      <div class="tip" style="text-align:center">看形状，不看总分。抽卡会优先补你最塌的那一角。</div></div>
+    <div class="card"><h2 class="sec">领域进度</h2><div id="dmbars"></div></div>
+    <div class="card"><h2 class="sec">分支进度</h2><div id="brbars"></div></div>
+    <div class="card"><h2 class="sec">心情曲线</h2><canvas id="mood" width="680" height="240"></canvas></div>
+    <div class="card"><h2 class="sec">关键指标</h2><div class="statgrid" id="statgrid"></div></div>
+  </section>
+
+  <section class="view" id="v-profile">
+    <div class="card">
+      <h2 class="sec">能力档案</h2>
+      <div id="profileBody"></div>
+      <div class="row" style="margin-top:16px">
+        <button class="btn primary sm" id="btnProfileMd">导出 Markdown 档案</button>
+        <button class="btn sm" id="btnProfileCard">导出能力卡（PNG）</button>
+        <button class="btn ghost sm" id="btnCopyProfile">复制纯文本</button>
+      </div>
+    </div>
+    <div class="card">
+      <h2 class="sec">盲盒节点</h2>
+      <p class="tip" style="margin-top:0">从你还没点亮的节点里随机抽一个，生成一张可以发出去的卡片。点开链接的人会看到同一个节点——这是这套系统以后能自己长内容的地方。</p>
+      <div class="row" style="margin-top:12px">
+        <button class="btn sm" id="btnBlind">抽一张盲盒卡</button>
+        <button class="btn ghost sm" id="btnBlindLink">复制盲盒链接</button>
+      </div>
+      <div id="blindOut" style="margin-top:14px"></div>
+    </div>
+  </section>
+
+  <section class="view" id="v-about">
+    <div class="card">
+      <h2 class="sec">体力规则</h2>
+      <p class="tip" style="margin-top:0">每天回满 <b style="color:var(--phos)">15 点</b>体力。每点亮一个节点按它的时长扣体力：</p>
+      <div class="row" style="margin-top:10px">
+        <span class="pw">≤15 分钟 · 3 点</span>
+        <span class="pw">≤30 分钟 · 5 点</span>
+        <span class="pw">≤60 分钟 · 10 点</span>
+        <span class="pw">>60 分钟 · 15 点</span>
+      </div>
+      <p class="tip" style="margin-top:12px"><b>体力耗尽 = 今天达标</b>。还想做就是超额完成，每天额外奖励 2 💎，并且计入「超额完成」成就。<br>
+      举例：<b>10+5</b> 正好一天，<b>5+5+5</b> 也能凑满；一天做一个 15 点的硬仗同样达标。体力不会累积到明天，<b>别攒，攒不下来</b>。</p>
+    </div>
+    <div class="card">
+      <h2 class="sec">主题色</h2>
+      <p class="tip" style="margin-top:0">三套配色，随时可换。默认绿色磷光。</p>
+      <div class="row" style="margin-top:10px" id="themeRow"></div>
+    </div>
+    <div class="card">
+      <h2 class="sec">显示风格</h2>
+      <div class="row" style="margin-top:6px" id="crtRow"></div>
+    </div>
+    <div class="card">
+      <h2 class="sec">数据</h2>
+      <div class="row">
+        <button class="btn sm" id="btnExport">导出备份（JSON）</button>
+        <button class="btn sm" id="btnImport">导入备份</button>
+        <button class="btn ghost sm" id="btnReset">清空并重新开始</button>
+      </div>
+      <input type="file" id="fileInput" accept=".json,application/json" style="display:none">
+      <div class="tip" style="margin-top:12px">数据只存在这台设备的浏览器里。<b>文件可以随便拷</b>，但换设备要手动导出/导入。每周导一次，就永远不会丢。</div>
+    </div>
+    <div class="card">
+      <h2 class="sec">规则</h2>
+      <ul id="ruleList" style="font-size:13.5px;color:#cfd6e8;padding-left:0;list-style:none;margin:0"></ul>
+    </div>
+    <footer class="ft">
+      人生技能树 v{{VERSION}} · 构建于 {{STAMP}} · 单文件离线版<br>
+      <span style="color:#3f4f46">A human being should be able to change a diaper, plan an invasion, butcher a hog, conn a ship, design a building, write a sonnet, balance accounts, build a wall, set a bone, comfort the dying, take orders, give orders, cooperate, act alone, solve equations, analyze a new problem, pitch manure, program a computer, cook a tasty meal, fight efficiently, die gallantly. Specialization is for insects.</span>
+    </footer>
+  </section>
+</div>
+
+<div class="modal" id="modal"><div class="box" id="modalBox"></div></div>
+<div id="toast"></div>
+<div id="mega"><div class="m"><div class="t" id="megaT"></div><div class="s" id="megaS"></div></div></div>
+
+<script id="appdata" type="application/json">{{DATA_JSON}}</script>
+<script>
+(function(){
+"use strict";
+const D = JSON.parse(document.getElementById('appdata').textContent);
+const TASKS = D.TASKS, DOMAINS = D.DOMAINS, BRANCHES = D.BRANCHES, ACHS = D.ACHS;
+const UNLOCK_NEED = D.UNLOCK_NEED, TIER_NAME = D.TIER_NAME, VERSION = D.VERSION;
+const WEEKS = D.WEEKS, TOTAL_DAYS = D.TOTAL_DAYS;
+const DAILY_POWER = D.DAILY_POWER, POWER_LEVELS = D.POWER_LEVELS, POWER_LABEL = D.POWER_LABEL;
+const DM = {}, BR = {}, TK = {};
+DOMAINS.forEach(d => DM[d.key] = d);
+BRANCHES.forEach(b => BR[b.key] = b);
+TASKS.forEach(t => TK[t.id] = t);
+const TARGET = TASKS.length, KEY = 'life-skilltree-v3';
+const $ = s => document.querySelector(s);
+const $$ = s => Array.from(document.querySelectorAll(s));
+const esc = s => String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+/** 时长格式化：超过 1 天换算成天/周，别让用户读 "20160 分钟" */
+function dur(min){
+  if(min < 60) return min + ' 分钟';
+  if(min < 1440) return (min/60).toFixed(min % 60 ? 1 : 0) + ' 小时';
+  const d = Math.round(min/1440);
+  if(d < 14) return d + ' 天';
+  return Math.round(d/7) + ' 周（' + d + ' 天）';
+}
+
+function ymd(off){ const d = new Date(); if(off) d.setDate(d.getDate()+off);
+  return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); }
+function ddiff(a,b){ const p=a.split('-').map(Number), q=b.split('-').map(Number);
+  return Math.round((Date.UTC(q[0],q[1]-1,q[2])-Date.UTC(p[0],p[1]-1,p[2]))/86400000); }
+
+function blank(){
+  return { v:3, rev:0, updatedAt:new Date().toISOString(), createdAt:new Date().toISOString(),
+    todayDate:ymd(), todayTaskId:null, rerollsLeft:2, carryFrom:null,
+    completions:[], freezes:0, freezeUsed:[], revives:3, revivesUsed:[],
+    achievements:[], gems:0, gemsTotal:0,
+    powerDate: null,
+    settings:{ crt:'soft', theme:'green', nightGuard:true }, profileExported:false, blindShared:false };
+}
+let S = (()=>{ try{ const r=localStorage.getItem(KEY); if(r) return Object.assign(blank(), JSON.parse(r)); }catch(e){} return blank(); })();
+function save(){ try{ S.rev++; S.updatedAt=new Date().toISOString(); localStorage.setItem(KEY, JSON.stringify(S)); }catch(e){ toast('⚠️ 保存失败'); } }
+const doneIds = () => new Set(S.completions.map(c=>c.id));
+const doneCount = () => S.completions.length;
+const isDone = id => doneIds().has(id);
+const compOf = id => S.completions.find(c=>c.id===id);
+/* 体力：每天固定 15 点，任务按档位消耗。当日消耗从完成记录实时算，所以撤销打卡会退回体力 */
+const cost = t => t.power;
+function spentOn(date){
+  return S.completions.filter(c=>c.date===date).reduce((a,c)=>{ const t=TK[c.id]; return a + (t?cost(t):0); }, 0);
+}
+const spentToday = () => spentOn(ymd());
+const powerLeft = () => DAILY_POWER - spentToday();
+const dayCleared = () => spentToday() >= DAILY_POWER;
+
+/* 解锁：领域内第 N 层，需要第 N-1 层完成 UNLOCK_NEED 个 */
+function isUnlocked(id, ds){
+  const t = TK[id];
+  if(t.tier === 1) return true;
+  const done = ds || doneIds();
+  const lower = TASKS.filter(x => x.dm === t.dm && x.tier === t.tier - 1);
+  return lower.filter(x => done.has(x.id)).length >= UNLOCK_NEED;
+}
+function lowerProgress(id){
+  const t = TK[id], done = doneIds();
+  const lower = TASKS.filter(x => x.dm === t.dm && x.tier === t.tier - 1);
+  return { got: lower.filter(x => done.has(x.id)).length, need: UNLOCK_NEED };
+}
+function syncDay(){
+  const t = ymd();
+  if(S.powerDate !== t){ S.powerDate = t; S.rerollsLeft = 2;
+    if(S.todayTaskId && !isDone(S.todayTaskId)) S.carryFrom = S.todayDate; }
+  if(S.todayDate !== t){ S.todayDate = t; const st = streak();
+    S.freezes = Math.max(S.freezes, Math.min(3, Math.floor(st.best/7))); }
+  save();
+}
+function streak(){
+  const marked = new Set(S.completions.map(c=>c.date));
+  S.freezeUsed.forEach(d=>marked.add(d));
+  let cur=0, cursor=ymd();
+  if(!marked.has(cursor)) cursor = ymd(-1);
+  while(marked.has(cursor)){ cur++; cursor = ymd(ddiff(ymd(),cursor)-1); }
+  let best=0, run=0;
+  if(marked.size){
+    const oldest=[...marked].sort()[0], total=Math.max(0,ddiff(oldest,ymd()));
+    for(let i=0;i<=total;i++){
+      const d=(function(off){const x=new Date();x.setDate(x.getDate()-(total-off));
+        return x.getFullYear()+'-'+String(x.getMonth()+1).padStart(2,'0')+'-'+String(x.getDate()).padStart(2,'0');})(i);
+      if(marked.has(d)){run++;best=Math.max(best,run);}else run=0;
+    }
+  }
+  return { cur, best:Math.max(best,cur) };
+}
+function domStats(){
+  const o={}; DOMAINS.forEach(d=>o[d.key]={done:0,total:0,xp:0});
+  TASKS.forEach(t=>o[t.dm].total++);
+  S.completions.forEach(c=>{const t=TK[c.id]; if(!t)return; o[t.dm].done++; o[t.dm].xp += t.tier*10+Math.round(t.min/5);});
+  return o;
+}
+function branchStats(){
+  const o={}; BRANCHES.forEach(b=>o[b.key]={done:0,total:0});
+  TASKS.forEach(t=>o[t.br].total++);
+  S.completions.forEach(c=>{const t=TK[c.id]; if(t) o[t.br].done++;});
+  return o;
+}
+function tierUnlockedMax(dmKey){
+  const done = doneIds(); let mx=1;
+  for(const t of TASKS.filter(x=>x.dm===dmKey)) if(isUnlocked(t.id,done)) mx=Math.max(mx,t.tier);
+  return mx;
+}
+function qDoneCount(){ return S.completions.filter(c=>(c.answers||[]).some(a=>a.a&&a.a.trim().length>=4)).length; }
+function tagCount(tag){ return S.completions.filter(c=>(TK[c.id].tags||[]).includes(tag)).length; }
+
+/* ---------------- 主线：105 天 / 15 周 / 热力图 ---------------- */
+/** 第 1 天 = 你第一次点亮那天（没有记录就从今天算） */
+function startDate(){
+  if(!S.completions.length) return S.createdAt ? S.createdAt.slice(0,10) : ymd();
+  return S.completions.map(c=>c.date).sort()[0];
+}
+function dayIndex(){ return Math.max(0, ddiff(startDate(), ymd())); }        // 第 0 天起
+function currentWeek(){ return Math.max(1, Math.min(WEEKS.length, Math.floor(dayIndex()/7) + 1)); }
+function activeDays(){ return new Set(S.completions.map(c=>c.date)).size; }
+function weekStat(w){
+  const wk = WEEKS[w-1]; if(!wk) return { done:0, total:0, main:0 };
+  const done = doneIds();
+  const ids = wk.ids;
+  // main = 本周 7 个主线节点完成数（决定"这周走完了吗"）
+  return { done: ids.filter(id=>done.has(id)).length, total: ids.length };
+}
+/** 某周（含备选池）你一共点亮了多少个 */
+function weekTouched(w){
+  const done = doneIds();
+  return TASKS.filter(t=>t.week===w && done.has(t.id)).length;
+}
+function weekDoneCount(){ return WEEKS.filter((_,i)=>weekStat(i+1).done >= weekStat(i+1).total).length; }
+/** 每天完成几个 + 是否有补卡 */
+function activityByDate(){
+  const m = {};
+  S.completions.forEach(c=>{ m[c.date] = (m[c.date]||0)+1; });
+  S.freezeUsed.forEach(d=>{ if(!m[d]) m[d] = -1; });   // -1 表示熔断补卡
+  return m;
+}
+
+/* ---------------- 成就 ---------------- */
+function metrics(){
+  const st=streak(), ds=domStats(), bs=branchStats();
+  const t4 = DOMAINS.filter(d=>tierUnlockedMax(d.key)>=4).length;
+  const t2 = DOMAINS.filter(d=>tierUnlockedMax(d.key)>=2).length;
+  const t3 = DOMAINS.filter(d=>tierUnlockedMax(d.key)>=3).length;
+  return { done:doneCount(), streak:st.cur, best:st.best,
+    tier2:t2, tier3:t3, tier4:t4,
+    days: activeDays(), weekDone: weekDoneCount(),
+    brDone: Object.values(bs).filter(x=>x.total&&x.done>=x.total).length,
+    qDone:qDoneCount(), allDom1:DOMAINS.every(d=>ds[d.key].done>=1), allDom5:DOMAINS.every(d=>ds[d.key].done>=5),
+    faith3: (ds.faith ? ds.faith.done : 0) >= 3, faith6: (ds.faith ? ds.faith.done : 0) >= 6,
+    free10:tagCount('零成本')>=10, solo15:tagCount('独自一人')>=15,
+    over: (()=>{ const byDay={}; S.completions.forEach(c=>{ const t=TK[c.id]; if(t) byDay[c.date]=(byDay[c.date]||0)+t.power; });
+      return Object.values(byDay).filter(v=>v>DAILY_POWER).length; })(),
+    maxDay: (()=>{ const byDay={}; S.completions.forEach(c=>{ const t=TK[c.id]; if(t) byDay[c.date]=(byDay[c.date]||0)+t.power; });
+      return Math.max(0,...Object.values(byDay)); })(),
+    worldEnds: S.completions.filter(c=>{ const t=TK[c.id]; return t && t.tier >= 8; }).length,
+    profileExported:S.profileExported };
+}
+const CHECKS = {
+  'done>=1':m=>m.done>=1,'streak>=3':m=>m.streak>=3,'streak>=7':m=>m.streak>=7,'streak>=14':m=>m.streak>=14,
+  'streak>=21':m=>m.streak>=21,'days>=30':m=>m.days>=30,'days>=50':m=>m.days>=50,
+  'weekDone>=1':m=>m.weekDone>=1,'weekDone>=3':m=>m.weekDone>=3,'weekDone>=7':m=>m.weekDone>=7,
+  'weekDone>=11':m=>m.weekDone>=11,'weekDone>=15':m=>m.weekDone>=15,
+  'tier2>=1':m=>m.tier2>=1,'tier3>=1':m=>m.tier3>=1,'tier4>=1':m=>m.tier4>=1,
+  'tier4>=4':m=>m.tier4>=4,'brDone>=6':m=>m.brDone>=6,'brDone>=12':m=>m.brDone>=12,
+  'brDone>=9':m=>m.brDone>=9,'brDone>=18':m=>m.brDone>=18,'brDone>=27':m=>m.brDone>=27,'qDone>=10':m=>m.qDone>=10,'qDone>=30':m=>m.qDone>=30,
+  'qDone>=60':m=>m.qDone>=60,'allDom1':m=>m.allDom1,'allDom5':m=>m.allDom5,'free10':m=>m.free10,
+  'solo15':m=>m.solo15,'faith3':m=>m.faith3,'faith6':m=>m.faith6,
+  'over>=1':m=>m.over>=1,'over>=5':m=>m.over>=5,'over>=20':m=>m.over>=20,'maxDay>=45':m=>m.maxDay>=45,
+  'worldEnds>=1':m=>m.worldEnds>=1,'worldEnds>=2':m=>m.worldEnds>=2,
+  'best>=30':m=>m.best>=30,'best>=66':m=>m.best>=66,
+  profileExported:m=>m.profileExported,
+};
+function checkAch(quiet){
+  const m = metrics(), got = [];
+  ACHS.forEach(a=>{ if(S.achievements.includes(a.id)) return;
+    let ok=false; try{ ok = !!(CHECKS[a.k] && CHECKS[a.k](m)); }catch(e){}
+    if(ok){ S.achievements.push(a.id); got.push(a); } });
+  if(got.length){ save(); if(!quiet) got.forEach((a,i)=>setTimeout(()=>mega(a.ic+' '+a.n,'成就解锁 · '+a.d), i*1300)); }
+  return got;
+}
+
+/* ---------------- 抽卡：科技树式 ---------------- */
+// 夜间保护：只在真正的睡前时段生效（20:00-02:00）
+// 深夜 2 点以后不再限制——那时候你已经醒了，凌晨硬塞"睡前任务"没有意义
+function isNight(){ const h=new Date().getHours(); return S.settings.nightGuard!==false && (h>=20 || h<2); }
+function pool(){
+  const done = doneIds();
+  const avail = TASKS.filter(t=>!done.has(t.id) && isUnlocked(t.id, done));
+  const cw = currentWeek();
+  // 本周主线节点（105 个里的 7 个）
+  let list = avail.filter(t=>t.week === cw);
+  // 主线不够选？扩到本周主题池（同主题的其他节点）
+  if(list.length < 2) list = list.concat(weekThemePool(cw).filter(t=>!done.has(t.id) && isUnlocked(t.id, done)));
+  // 还不够就退到同领域
+  if(list.length < 2){
+    const dms = new Set(list.map(t=>t.dm));
+    list = avail.filter(t=>dms.has(t.dm));
+  }
+  if(list.length < 2) list = avail;
+  // 体力闸门：优先给"剩余体力付得起"的节点；付得起的不够 3 个时放开（超额也算数）
+  const left = powerLeft();
+  const affordable = list.filter(t=>cost(t) <= Math.max(left, 0));
+  if(affordable.length >= 3) list = affordable;
+  // 前期只发轻量
+  const n = doneCount();
+  if(n < 10){ const l = list.filter(t=>t.tier<=2); if(l.length >= 2) list = l; }
+  else if(n < 25){ const l = list.filter(t=>t.tier<=3); if(l.length >= 2) list = l; }
+  // 睡前时段：轻量或睡前向
+  if(isNight()){ const nt = list.filter(t=>t.dm==='night' || t.min<=45); if(nt.length >= 2) list = nt; }
+  return list.length ? list : avail;
+}
+/** 某一周的主题池：该周主题所覆盖的那些分支上的节点 */
+function weekThemePool(w){
+  const pools = {
+    1:['n1','n2','n3','o3'], 2:['n3'], 3:['n1','n2'], 4:['n1','n2'],
+    5:['b1','b2','b3'], 6:['m1','o3'], 7:['m1','m2'], 8:['m3'],
+    9:['c1','c2','c3'], 10:['a1','a2'], 11:['a2','a3'],
+    12:['x1','x2','x3'], 13:['s1','s2','s3'], 14:['o1','o2','c1'],
+    15:['a3','x3','s2','m3','a2','c3','b2','x1','o3'],
+  };
+  const brs = pools[w] || [];
+  return TASKS.filter(t=>brs.includes(t.br));
+}
+function draw(){
+  const list = pool(); if(!list.length) return null;
+  const ds = domStats(), bs = branchStats();
+  const mx = Math.max(1,...DOMAINS.map(d=>ds[d.key].done));
+  const cw = currentWeek();
+  const w = [];
+  list.forEach(t=>{
+    let k = 1 + (mx - ds[t.dm].done)*0.9;          // 补最弱的领域
+    k += t.tier*0.45;                              // 优先给你可及的最高层（科技树的进阶感）
+    if(t.week === cw) k += 1.6;                    // 主线优先：本周节点权重更高
+    if(bs[t.br].done>0 && bs[t.br].done<bs[t.br].total) k += 0.8;  // 同一条线上继续走
+    if(t.tier<=2) k += 0.4;                        // 轻微偏好低压，降低放弃率
+    for(let i=0,n=Math.max(1,Math.round(k*3));i<n;i++) w.push(t);
+  });
+  return w[Math.floor(Math.random()*w.length)];
+}
+function ensureToday(){
+  syncDay();
+  if(!S.todayTaskId || isDone(S.todayTaskId) && !compOf(S.todayTaskId)) { /* keep */ }
+  if(!S.todayTaskId){ const t=draw(); if(t){ S.todayTaskId=t.id; save(); } }
+  // 今日节点若因缺少前置被锁（例如撤销过打卡），自动换一个可做的
+  if(S.todayTaskId && !isDone(S.todayTaskId) && !isUnlocked(S.todayTaskId)){ const t=draw(); if(t) S.todayTaskId=t.id; save(); }
+  return TK[S.todayTaskId] || null;
+}
+
+/* ---------------- 渲染 ---------------- */
+let toastT;
+function toast(m,ms){ const el=$('#toast'); el.textContent=m; el.classList.add('on');
+  clearTimeout(toastT); toastT=setTimeout(()=>el.classList.remove('on'), ms||2600); }
+function mega(t,s){ $('#megaT').textContent=t; $('#megaS').textContent=s||'';
+  const el=$('#mega'); el.classList.remove('on'); void el.offsetWidth; el.classList.add('on');
+  setTimeout(()=>el.classList.remove('on'),2700); }
+function closeModal(){ $('#modal').classList.remove('on'); }
+
+function renderHead(){
+  const n=doneCount(), st=streak(), bs=branchStats();
+  const brDone = Object.values(bs).filter(x=>x.total&&x.done>=x.total).length;
+  const cw = currentWeek();
+  $('#hud').innerHTML =
+    '<span class="chip green">✓ <b>'+n+'</b>/'+TASKS.length+'</span>'+
+    '<span class="chip">📅 第 <b>'+cw+'</b>/15 周</span>'+
+    '<span class="chip amber">🔥 <b>'+st.cur+'</b> 天</span>'+
+    '<span class="chip">🧭 分支 <b>'+brDone+'</b>/'+BRANCHES.length+'</span>'+
+    '<span class="chip">🏆 <b>'+S.achievements.length+'</b>/'+ACHS.length+'</span>'+
+    '<span class="chip">💗 <b>'+S.revives+'</b></span>';
+  const spent = spentToday(), left = DAILY_POWER - spent, over = spent - DAILY_POWER;
+  // 15 格：点亮的格数 = 已消耗的体力；超额时转为红色
+  const cellCls = (i) => {
+    if(i >= spent) return '';
+    if(over > 0 && i >= DAILY_POWER - over) return ' over';
+    return ' on';
+  };
+  const box = $('#energyBox');
+  box.className = 'energy' + (over > 0 ? ' full' : '');
+  box.innerHTML = Array.from({length:DAILY_POWER},(_,i)=>'<i class="'+cellCls(i)+'"></i>').join('');
+  const d=new Date(), wd='日一二三四五六'[d.getDay()];
+  const badge = over > 0 ? '超额 '+over+' 点 🎉' : dayCleared() ? '今日达标 ✓' : '还差 '+(DAILY_POWER-spent)+' 点';
+  $('#statusText').textContent = '体力 '+spent+'/'+DAILY_POWER+' · '+badge+' · '+(d.getMonth()+1)+'月'+d.getDate()+'日 周'+wd;
+  $('#pgBar').style.width = (n/TARGET*100)+'%';
+  $('#pgLabel').textContent = '已点亮 '+n+' / '+TARGET;
+  $('#pgSub').textContent = n===0 ? '还没点亮第一个节点' : '追问 '+qDoneCount()+' 组 · 分支 '+brDone+'/'+BRANCHES.length+' 全通';
+  $('#subtitle').textContent = '24 条路线 · '+TARGET+' 个节点 · 已点亮 '+n;
+}
+function renderQuote(){
+  const qs = [
+    ['你不需要更自律，你需要更有趣的事。','系统的全部设计前提'],
+    ['做完了不算完成，说清楚了才算。','所以每个节点都有三个追问'],
+    ['科技树的意义不是收集，是让你看得见自己在往哪长。','24 条分支就是 24 个方向'],
+    ['一个人应该能够换尿布，策划战争，写十四行诗，结算账户，安慰濒死的人。只有昆虫才专业化。','罗伯特·海因莱因'],
+    ['不适感是门票，不是障碍。','今天这个节点可能让你有点难堪——那就对了'],
+  ];
+  const q = qs[Math.floor(Math.random()*qs.length)];
+  $('#quote').innerHTML = esc(q[0])+'<br><span style="color:var(--dim2);font-size:12px;font-style:normal">—— '+esc(q[1])+'</span>';
+}
+function renderNight(){
+  const el=$('#nightwarn');
+  if(isNight()){ el.innerHTML='<b>🌙 睡前时段。</b>系统优先发轻量的睡前节点：不出门、不剧烈、不盯屏幕。做完就去睡。'; el.classList.add('on'); }
+  else el.classList.remove('on');
+}
+
+/* ---------------- 本周卡片（今日页顶部） ---------------- */
+function renderWeekCard(){
+  const cw = currentWeek(), w = WEEKS[cw-1], st = weekStat(cw);
+  const day = dayIndex() + 1;
+  const pct = st.total ? Math.round(st.done/st.total*100) : 0;
+  $('#weekcard').innerHTML =
+    '<div class="curweek"><span class="cwicon">'+w.icon+'</span><div>'+
+      '<div class="cwname">第 '+w.n+' 周 · '+esc(w.name)+'</div>'+
+      '<div class="cwdesc">'+esc(w.desc)+'</div></div>'+
+      '<div class="cwprog">第 '+day+' / '+TOTAL_DAYS+' 天<br>本周 '+st.done+'/'+st.total+' 节点</div></div>'+
+    '<div class="bar" style="margin-top:12px"><i style="width:'+pct+'%"></i></div>'+
+    '<div class="tip" style="margin-top:9px">抽卡优先发本周的节点。你也可以去「任务库」自己挑任何已解锁的——<b>跨周完成同样算数，进度不会因此卡住</b>。</div>';
+}
+function renderWeeks(){
+  const cw = currentWeek(), done = doneIds();
+  $('#weekswrap').innerHTML = WEEKS.map((w,i)=>{
+    const st = weekStat(w.n);
+    const extra = weekTouched(w.n);          // 含备选池
+    const allDone = st.total && st.done>=st.total;
+    const cls = 'weekcard' + (w.n===cw && !allDone ? ' cur':'') + (allDone ? ' done':'');
+    const dstr = '第 ' + (i*7+1) + '-' + (i*7+7) + ' 天';
+    return '<div class="'+cls+'"><div class="wt">'+
+      '<span style="font-size:18px">'+w.icon+'</span>'+
+      '<span class="wn2">第 '+w.n+' 周 · '+esc(w.name)+'</span>'+
+      (allDone?'<span class="badge done">已完成</span>':(w.n===cw?'<span class="badge done">本周</span>':''))+
+      '<span class="wp">'+dstr+' · '+st.done+'/'+st.total+(extra>st.done?' (+'+(extra-st.done)+' 备选)':'')+'</span></div>'+
+      '<div class="wd">'+esc(w.desc)+'</div>'+
+      '<div class="wlist">'+w.ids.map(id=>{ const t=TK[id];
+        return '<span class="wpill'+(done.has(id)?' done':'')+'" title="'+esc(t.t)+'">'+
+          (done.has(id)?'✓ ':'')+esc(t.t.slice(0,10))+'</span>'; }).join('')+'</div></div>';
+  }).join('');
+}
+/* ---------------- GitHub 风格热力图 ---------------- */
+function renderHeat(){
+  const act = activityByDate();
+  const start = startDate();
+  const todayIdx = dayIndex();
+  const weeks = WEEKS.length;                        // 15 列
+  // 起始日是周几，决定第一列前面要空几格
+  const sp = start.split('-').map(Number);
+  const startDow = new Date(Date.UTC(sp[0],sp[1]-1,sp[2])).getUTCDay();   // 0=周日
+  const offset = (startDow + 6) % 7;                 // 转成 0=周一
+  const DAY_LABEL = ['一','','三','','五','','日'];
+  const cols = [];
+  let idx = -offset;
+  for(let c=0;c<weeks;c++){
+    const cells = [];
+    for(let r=0;r<7;r++,idx++){
+      if(idx < 0 || idx >= TOTAL_DAYS){ cells.push('<span class="hcell" style="visibility:hidden"></span>'); continue; }
+      const d = (function(off){ const x=new Date(); x.setDate(x.getDate()+(off-todayIdx));
+        return x.getFullYear()+'-'+String(x.getMonth()+1).padStart(2,'0')+'-'+String(x.getDate()).padStart(2,'0'); })(idx);
+      const v = act[d];
+      const future = idx > todayIdx;
+      const lvl = v === undefined ? 0 : (v < 0 ? 1 : Math.min(4, v));
+      const tip = future ? d + '（还没到）'
+        : v === undefined ? d + '　没有记录'
+        : v < 0 ? d + '　用熔断卡补的'
+        : d + '　完成 ' + v + ' 个节点';
+      cells.push('<span class="hcell'+(lvl?' l'+lvl:'')+(idx===todayIdx?' today':'')+(future?' future':'')+'" title="'+esc(tip)+'"></span>');
+    }
+    cols.push('<div class="hcol">'+cells.join('')+'</div>');
+  }
+  const months = [];
+  for(let c=0;c<weeks;c++){
+    const d = new Date(); d.setDate(d.getDate() + (c*7 - offset - todayIdx));
+    months.push('<span style="width:'+(weeks>0?15:15)+'px">'+(c===0 || d.getDate()<=7 ? (d.getMonth()+1)+'月' : '')+'</span>');
+  }
+  $('#heatwrap').innerHTML =
+    '<div class="heat"><div class="hmonths">'+months.join('')+'</div>'+
+    '<div class="hbody"><div class="hdays">'+DAY_LABEL.map(x=>'<span>'+x+'</span>').join('')+'</div>'+
+    '<div class="hgrid">'+cols.join('')+'</div></div></div>';
+  $('#heatlegend').innerHTML = '<div class="heatlegend">少 <i></i><i class="l1"></i><i class="l2"></i><i class="l3"></i><i class="l4"></i> 多'+
+    '　·　<b style="color:var(--phos)">'+activeDays()+'</b> 天有记录　·　最长连续 <b style="color:var(--amber)">'+streak().best+'</b> 天'+
+    '　·　当前第 <b>'+currentWeek()+'</b> / 15 周</div>';
+  const inWindow = Object.keys(act).length;
+  const total = S.completions.length;
+  const last30 = (()=>{ let n=0; for(let i=0;i<30;i++){ const d=(function(off){ const x=new Date(); x.setDate(x.getDate()-off);
+    return x.getFullYear()+'-'+String(x.getMonth()+1).padStart(2,'0')+'-'+String(x.getDate()).padStart(2,'0'); })(i);
+    n += act[d] > 0 ? 1 : 0; } return n; })();
+  $('#heatstats').innerHTML = [
+    ['打卡天数', activeDays()+' 天'],
+    ['总点亮', total+' 个节点'],
+    ['最近 30 天', last30+' 天有记录'],
+    ['已走完主题周', weekDoneCount()+' / 15'],
+    ['当前周', '第 '+currentWeek()+' 周'],
+    ['主线进度', (dayIndex()+1)+' / '+TOTAL_DAYS+' 天'],
+  ].map(x=>'<div class="stat"><div class="v">'+x[1]+'</div><div class="k">'+x[0]+'</div></div>').join('');
+}
+
+function renderToday(){
+  const t = ensureToday(), box = $('#quest');
+  renderWeekCard();  if(!t){
+    box.innerHTML = '<div class="empty"><div class="big">🐉</div><p>100 个节点全部点亮。现在挑 20 个，把它们变成你的日常。</p></div>';
+    $('#reviewpanel').style.display='none'; renderFreeze(); return;
+  }
+  const dm = DM[t.dm], br = BR[t.br];
+  const done = isDone(t.id), c = compOf(t.id), locked = !isUnlocked(t.id);
+  const need = cost(t), left = powerLeft();
+  box.style.setProperty('--acc', dm.color);
+  const carried = !done && S.carryFrom && S.carryFrom < ymd();
+  box.innerHTML =
+    (carried?'<div class="notice">⏳ 这个节点是 '+esc(S.carryFrom)+' 抽到但还没做的。它等你到今天，没跑掉。</div>':'')+
+    (locked?'<div class="notice">🔒 这个节点需要先完成「'+esc(dm.name)+'」第 '+(t.tier-1)+' 层里的 '+UNLOCK_NEED+' 个（你已完成 '+lowerProgress(t.id).got+'/'+UNLOCK_NEED+'）。</div>':'')+
+    '<div class="qtop">'+
+      '<span class="badge dm">'+dm.icon+' '+esc(dm.name)+'</span>'+
+      '<span class="badge dm">'+br.icon+' '+esc(br.name)+'</span>'+
+      '<span class="badge">'+esc(TIER_NAME[t.tier])+' · 第 '+t.tier+' 层</span>'+
+      '<span class="badge">'+dur(t.min)+'</span>'+
+      '<span class="pw '+(need>left?'tight':'')+'">⚡ '+need+' 点'+(need>left?'（超出剩余 '+left+'）':'')+'</span>'+
+      (done?'<span class="badge done">已点亮 '+c.date+'</span>':'')+
+    '</div>'+
+    '<h2 class="qtitle">'+esc(t.t)+'</h2>'+
+    '<p class="qdo"><b>怎么做</b>'+esc(t.do)+'</p>'+
+    '<p class="qwin"><b>为什么</b>'+esc(t.win)+'</p>'+
+    '<div class="metarow">'+t.tags.map(x=>'<span class="m">#'+esc(x)+'</span>').join('')+'</div>'+
+    '<div class="acts">'+
+      (done?'<button class="btn" id="btnAnswers">查看 / 补充三个追问</button>'
+           :'<button class="btn primary" id="btnDone">我做到了，点亮它</button>')+
+      (done?'<button class="btn ghost" id="btnUndo">撤销点亮</button>':'')+
+      '<button class="btn" id="btnReroll"'+(S.rerollsLeft<=0||done?' disabled':'')+'>换一个（剩 '+S.rerollsLeft+'）</button>'+
+      '<button class="btn ghost" id="btnPick">我自己挑</button>'+
+      (!done&&!locked&&dayCleared()?'<span class="tip" style="align-self:center">今天已经达标了。还想做就是<b style="color:var(--amber)">超额完成</b>，会给额外奖励。</span>':'')+
+    '</div>';
+  if(done){
+    $('#btnAnswers').onclick = ()=>openAnswers(t,c);
+    $('#btnUndo').onclick = ()=>{ S.completions=S.completions.filter(x=>x.id!==t.id); S.todayTaskId=null; save(); renderAll(); toast('已撤销点亮'); };
+  } else {
+    $('#btnDone').onclick = ()=>openCheckin(t);
+  }
+  $('#btnReroll').onclick = ()=>{ if(S.rerollsLeft<=0) return; S.rerollsLeft--;
+    const nt=draw(); if(nt){ S.todayTaskId=nt.id; delete S.carryFrom; save(); renderAll(); toast('换好了：'+nt.t); } else toast('没有可换的节点了'); };
+  $('#btnPick').onclick = openPicker;
+  renderReview(); renderFreeze();
+}
+
+function openCheckin(t){
+  const dm=DM[t.dm];
+  $('#modalBox').innerHTML =
+    '<h3>点亮 · '+esc(t.t)+'</h3>'+
+    '<div class="sp"><span class="badge dm">'+dm.icon+' '+esc(dm.name)+'</span><span class="badge">'+BR[t.br].icon+' '+esc(BR[t.br].name)+'</span>'+
+    '<span class="badge">'+t.tier+' 层 · '+esc(TIER_NAME[t.tier])+'</span><span class="badge">'+dur(t.min)+'</span></div>'+
+    '<div class="field"><label>做完感觉如何？（1 糟透了 → 5 太好了）</label><div class="stars" id="stars">'+
+      [1,2,3,4,5].map(i=>'<button data-s="'+i+'">★</button>').join('')+'</div></div>'+
+    '<div class="field"><label>实际花了多少分钟？</label><input type="number" id="mins" placeholder="'+t.min+'"></div>'+
+    '<div class="qbox"><div class="qt">三个追问 · 点亮不是结束</div>'+
+      t.q.map((q,i)=>'<div class="qq">'+(i+1)+'. '+esc(q.q)+'</div><textarea data-qi="'+i+'" placeholder="'+esc(q.t)+'：写一两句就行"></textarea>').join('')+
+    '</div>'+
+    '<div class="tip">写完三问额外 +2 💎。跳过也能点亮——但至少写第一句，那是把体验变成能力的唯一动作。</div>'+
+    '<div class="acts foot"><button class="btn primary" id="ok">收下这个节点</button><button class="btn ghost" id="cancel">再等等</button></div>';
+  let mood=0;
+  $$('#stars button').forEach(b=>b.onclick=()=>{ mood=+b.dataset.s; $$('#stars button').forEach(x=>x.classList.toggle('on',+x.dataset.s<=mood)); });
+  $('#cancel').onclick = closeModal;
+  $('#ok').onclick = ()=>{
+    const mins=parseInt($('#mins').value,10);
+    const answers=t.q.map((q,i)=>({t:q.t,q:q.q,a:(document.querySelector('textarea[data-qi="'+i+'"]').value||'').trim()}));
+    const wrote=answers.some(a=>a.a.length>=4);
+    const cm=(isNaN(mins)||mins<=0)?t.min:mins;
+    S.completions.push({id:t.id,date:ymd(),at:new Date().toISOString(),mood,mins:cm,answers,qDone:wrote});
+    const g = 2 + t.tier + (wrote?2:0) + (cm>t.min*1.3?1:0) + (streak().cur>=7?2:0);
+    const spentAfter = spentOn(ymd());
+    const clearedNow = spentAfter >= DAILY_POWER && spentAfter - cost(t) < DAILY_POWER;   // 今天刚刚达成 15 点
+    const overNow = spentAfter > DAILY_POWER;
+    if(overNow) S.gems = (S.gems||0) + 2;   // 超额每天额外奖励 2 颗宝石
+    S.gemsTotal += g;
+    if(S.carryFrom) delete S.carryFrom;
+    const n=doneCount(), st=streak();
+    save(); closeModal();
+    toast('✓ 点亮 '+t.t+' · 体力 '+cost(t)+' 点（今日 '+spentAfter+'/'+DAILY_POWER+'）'+(wrote?' · 追问 +2 💎':''), 3600);
+    if(clearedNow) setTimeout(()=>mega('⚡ 今日达标', '体力已耗尽 '+spentAfter+'/'+DAILY_POWER+' · 明天回满 15 点'), 700);
+    if(overNow) setTimeout(()=>mega('🔥 超额完成 +'+(spentAfter-DAILY_POWER)+' 点', '额外 +2 💎 · 这一天算赚到了'), 1500);
+    const miles={1:'第一个节点',10:'十个节点',21:'二十一个',30:'三十个',50:'半程',66:'六十六个',80:'八十个',100:'全树点亮'};
+    if(miles[n]) mega('🎉 '+n+' / '+TARGET, miles[n]+' · 连续 '+st.cur+' 天');
+    const bs=branchStats();
+    if(bs[t.br].done===bs[t.br].total) setTimeout(()=>mega(BR[t.br].icon+' '+BR[t.br].name+' 全通','这条路线你走完了'),1500);
+    const before = metrics().tier4;
+    renderAll(); checkAch(); renderAch();
+    // 解锁提示
+    setTimeout(()=>{
+      const nowMax = tierUnlockedMax(t.dm);
+      if(nowMax > t.tier) toast('🔓 「'+dm.name+'」第 '+nowMax+' 层已解锁', 3600);
+    }, 900);
+    if(isNight()) setTimeout(()=>toast('🌙 已点亮。现在把手机放远，去睡。',5000),1500);
+  };
+  $('#modal').classList.add('on');
+}
+function openAnswers(t,c){
+  const ans = (c.answers&&c.answers.length)?c.answers:t.q.map(q=>({t:q.t,q:q.q,a:''}));
+  $('#modalBox').innerHTML='<h3>'+esc(t.t)+'</h3>'+
+    '<div class="sp"><span class="badge done">已点亮 '+c.date+'</span><span class="badge">'+t.id+'</span></div>'+
+    '<div class="qbox"><div class="qt">三个追问</div>'+
+    ans.map((a,i)=>'<div class="qq">'+(i+1)+'. '+esc(a.q)+'</div><textarea data-qi="'+i+'">'+esc(a.a)+'</textarea>').join('')+
+    '</div><div class="acts foot"><button class="btn primary" id="sv">保存</button><button class="btn ghost" id="cl">关闭</button></div>';
+  $('#cl').onclick=closeModal;
+  $('#sv').onclick=()=>{
+    const answers=ans.map((a,i)=>({t:a.t,q:a.q,a:(document.querySelector('textarea[data-qi="'+i+'"]').value||'').trim()}));
+    const was=(c.answers||[]).some(a=>a.a&&a.a.trim().length>=4);
+    c.answers=answers; c.qDone=answers.some(a=>a.a.length>=4);
+    if(c.qDone&&!was){ S.gemsTotal+=2; toast('补完了追问 +2 💎'); }
+    save(); closeModal(); renderAll(); checkAch(); renderAch();
+  };
+  $('#modal').classList.add('on');
+}
+function openPicker(){
+  const done=doneIds();
+  const tagOpts = [...new Set(TASKS.flatMap(t=>t.tags))].map(x=>'<option value="'+x+'">'+x+'</option>').join('');
+  $('#modalBox').innerHTML='<h3>我自己挑一个节点</h3><p class="tip" style="margin-top:0">按分支、标签、层级筛。没解锁的也能挑，但做之前需要先完成前置。</p>'+
+    '<div class="row" style="gap:8px;margin:12px 0">'+
+      '<select id="pBr"><option value="">全部分支</option>'+BRANCHES.map(b=>'<option value="'+b.key+'">'+b.icon+' '+esc(b.name)+'</option>').join('')+'</select>'+
+      '<select id="pTag"><option value="">全部标签</option>'+tagOpts+'</select>'+
+      '<select id="pTier"><option value="">全部层级</option>'+[1,2,3,4].map(i=>'<option value="'+i+'">第 '+i+' 层 · '+TIER_NAME[i]+'</option>').join('')+'</select>'+
+      '<select id="pDm"><option value="">全部领域</option>'+DOMAINS.map(d=>'<option value="'+d.key+'">'+d.icon+' '+d.name+'</option>').join('')+'</select>'+
+      '<select id="pU"><option value="">全部状态</option><option value="1">只看已解锁</option></select>'+
+      '<select id="pE"><option value="">不限时长</option><option value="30">30 分钟内</option><option value="60">1 小时内</option></select>'+
+    '</div><div id="plist" style="max-height:46vh;overflow:auto"></div>'+
+    '<div class="acts foot"><button class="btn ghost" id="cl2">关闭</button></div>';
+  function paint(){
+    const a=$('#pBr').value, g=$('#pTag').value, ti=$('#pTier').value, dmv=$('#pDm').value,
+          u=$('#pU').value, ev=+($('#pE').value||9999);
+    const list = TASKS.filter(t=>!done.has(t.id) && (!a||t.br===a) && (!g||t.tags.includes(g)) &&
+      (!ti||t.tier===+ti) && (!dmv||t.dm===dmv) && (!u||isUnlocked(t.id)) && t.min<=ev);
+    $('#plist').innerHTML = list.length ? list.map(t=>
+      '<div class="prow" data-id="'+t.id+'" style="display:flex;gap:10px;align-items:center;padding:10px 4px;border-bottom:1px solid rgba(255,255,255,.06);cursor:pointer">'+
+      '<span style="width:3px;height:26px;border-radius:2px;background:'+DM[t.dm].color+'"></span>'+
+      '<span>'+DM[t.dm].icon+'</span>'+
+      '<span class="grow" style="font-size:13.5px">'+esc(t.t)+(isUnlocked(t.id)?'':' <span class="badge lock">需前置</span>')+'</span>'+
+      '<span class="tip mono">'+TIER_NAME[t.tier]+' · '+t.min+'分</span></div>').join('')
+      : '<div class="tip" style="padding:16px">没有符合条件的节点，放宽筛选试试。</div>';
+    Array.from($('#plist').children).forEach(r=>{ if(r.dataset.id) r.onclick=()=>{
+      S.todayTaskId=r.dataset.id; delete S.carryFrom; save(); closeModal(); renderAll(); toast('已定为今天：'+TK[r.dataset.id].t); }; });
+  }
+  ['#pBr','#pTag','#pTier','#pDm','#pU','#pE'].forEach(s=>$(s).onchange=paint);
+  $('#cl2').onclick=closeModal; paint(); $('#modal').classList.add('on');
+}
+function renderReview(){
+  const el=$('#reviewpanel');
+  const w=S.completions.filter(c=>c.answers&&c.answers.some(a=>a.a&&a.a.length>=4)).slice(-3).reverse();
+  if(!w.length){ el.style.display='none'; return; }
+  el.style.display='block';
+  el.innerHTML='<h2 class="sec">最近想清楚了什么</h2>'+w.map(c=>{
+    const t=TK[c.id], a=c.answers.filter(x=>x.a&&x.a.length>=4)[0];
+    return '<div style="padding:11px 0;border-bottom:1px dashed rgba(255,255,255,.08)">'+
+      '<div class="tip mono" style="margin-bottom:4px">'+c.date+' · '+esc(t.t)+'</div>'+
+      '<div style="font-size:13.5px;color:#d3e8dc">'+esc(a.a)+'</div></div>';
+  }).join('');
+}
+function renderFreeze(){
+  const el=$('#freezepanel'), h=new Date().getHours(), gy=ymd(-1);
+  const marked=new Set(S.completions.map(c=>c.date));
+  const broken = !marked.has(gy) && !S.freezeUsed.includes(gy) && S.completions.length>0;
+  if(broken && h<14 && !marked.has(ymd())){
+    el.style.display='block';
+    el.innerHTML='<h2 class="sec">昨天断了</h2><p style="font-size:13.5px;color:#d3e8dc;margin:0">不影响你已经点亮的 '+doneCount()+' 个节点。'+
+      (S.freezes>0?'你有 <b style="color:var(--amber)">'+S.freezes+'</b> 张熔断卡可以补上昨天，连击不清零。'
+        :S.revives>0?'熔断卡用完了，还有 <b style="color:var(--amber)">'+S.revives+'</b> 张复活卡。'
+        :'所有卡都用完了。那就从今天重新数——你要的是那 100 个节点，不是那个数字。')+'</p>'+
+      '<div class="acts" style="margin-top:12px">'+
+      (S.freezes>0?'<button class="btn primary sm" id="uf">用 1 张熔断卡补昨天</button>':'')+
+      (S.freezes<=0&&S.revives>0?'<button class="btn sm" id="ur">用 1 张复活卡补昨天</button>':'')+
+      '<button class="btn ghost sm" id="sf">不用，让它断</button></div>';
+    if($('#uf')) $('#uf').onclick=()=>{ S.freezes--; S.freezeUsed.push(gy); save(); renderAll(); toast('已补上 '+gy); };
+    if($('#ur')) $('#ur').onclick=()=>{ S.revives--; S.revivesUsed.push(gy); S.freezeUsed.push(gy); save(); renderAll(); toast('复活卡已用'); };
+    $('#sf').onclick=()=>{ el.style.display='none'; };
+  } else el.style.display='none';
+}
+
+/* ---------------- 技能树 ---------------- */
+function renderTree(){
+  const done=doneIds(), bs=branchStats();
+  const fg=$('#fTag').value, fs=$('#fState').value, fd=$('#fDm').value, fw=$('#fWeek').value;
+  let shown = 0;
+  const html = DOMAINS.filter(d=>!fd||d.key===fd).map(d=>{
+    const bs3 = BRANCHES.filter(b=>b.dm===d.key);
+    const ds = { done: TASKS.filter(t=>t.dm===d.key&&done.has(t.id)).length, total: TASKS.filter(t=>t.dm===d.key).length };
+    const lv = tierUnlockedMax(d.key);
+    return '<div class="tree"><div class="dh"><span style="font-size:18px">'+d.icon+'</span>'+
+      '<span class="dn">'+esc(d.name)+'</span>'+
+      '<span class="dc">'+ds.done+'/'+ds.total+' · 已解锁到第 '+lv+' 层</span></div>'+
+      bs3.map(b=>{
+        const list = TASKS.filter(t=>t.br===b.key).filter(t=>{
+          if(fw && (fw==='0' ? t.week!=null : t.week!==+fw)) return false;
+          if(fg&&!t.tags.includes(fg)) return false;
+          if(fs==='done'&&!done.has(t.id)) return false;
+          if(fs==='avail'&&(done.has(t.id)||!isUnlocked(t.id))) return false;
+          if(fs==='locked'&&(done.has(t.id)||isUnlocked(t.id))) return false;
+          return true;
+        });
+        shown += list.length;
+        if(!list.length) return '';
+        return '<div class="branch" style="--acc:'+d.color+'"><div class="bh">'+
+          '<span>'+b.icon+'</span><span class="bn">'+esc(b.name)+'</span>'+
+          '<span class="tip mono">'+TASKS.filter(t=>t.br===b.key).length+' 个节点</span>'+
+          '<span class="bd">'+esc(b.desc)+'</span>'+
+          '<span class="tip mono" style="margin-left:auto">'+bs[b.key].done+'/'+bs[b.key].total+'</span></div>'+
+          '<div class="nodes">'+list.map(t=>{
+            const c=done.has(t.id), lk=!isUnlocked(t.id), now=t.id===S.todayTaskId&&!c;
+            return '<div class="node'+(c?' done':'')+(lk?' locked':'')+(now?' now':'')+(!c&&!lk?' next':'')+'" data-id="'+t.id+'" style="--acc:'+d.color+'">'+
+              '<span class="tier">'+esc(TIER_NAME[t.tier])+'</span>'+
+              '<div class="nt">'+esc(t.t)+'</div>'+
+              '<div class="nm"><span>'+t.id+'</span><span>'+t.min+'分</span>'+((c&&c.date)?'<span>'+String(c.date).slice(5)+'</span>':'')+'</div></div>';
+          }).join('')+'</div></div>';
+      }).join('')+'</div>';
+  }).join('');
+  $('#treewrap').innerHTML = html || '<div class="tip" style="padding:16px">没有符合条件的节点。</div>';
+  $('#libCount').textContent = '显示 ' + shown + ' / ' + TASKS.length + ' 个节点';
+  Array.from($('#treewrap').querySelectorAll('.node')).forEach(el=>el.onclick=()=>showTask(el.dataset.id));
+}
+function renderDomains(){
+  const ds=domStats(), bs=branchStats(), done=doneIds(), cw=currentWeek();
+  $('#domaingrid').innerHTML = DOMAINS.map(d=>{
+    const s=ds[d.key], pct=s.total?s.done/s.total*100:0;
+    const list=BRANCHES.filter(b=>b.dm===d.key);
+    const lv=tierUnlockedMax(d.key);
+    return '<div class="dmcard" style="--acc:'+d.color+'"><div class="dt">'+
+      '<span style="font-size:19px">'+d.icon+'</span>'+
+      '<span class="dn2">'+esc(d.name)+'</span>'+
+      '<span class="badge">第 '+lv+' 层</span>'+
+      '<span class="dc2">'+s.done+'/'+s.total+' 节点 · '+s.xp+' XP</span></div>'+
+      '<div class="dd">'+esc(d.creed)+'</div>'+
+      '<div class="bar" style="margin-top:10px"><i style="width:'+pct+'%;background:'+d.color+'"></i></div>'+
+      '<div class="dbr">'+list.map(b=>{
+        const t=TASKS.filter(x=>x.br===b.key);
+        const dn=t.filter(x=>done.has(x.id)).length;
+        return '<span class="wpill'+(dn>=t.length?' done':'')+'">'+b.icon+' '+esc(b.name)+' '+dn+'/'+t.length+'</span>';
+      }).join('')+'</div></div>';
+  }).join('');
+}
+function showTask(id){
+  const t=TK[id], dm=DM[t.dm], br=BR[t.br], c=compOf(id), locked=!isUnlocked(id);
+  $('#modalBox').innerHTML='<h3>'+esc(t.t)+'</h3>'+
+    '<div class="sp"><span class="badge dm">'+dm.icon+' '+esc(dm.name)+'</span>'+
+    '<span class="badge dm">'+dm.icon+' '+esc(dm.name)+'</span>'+
+    '<span class="badge">'+br.icon+' '+esc(br.name)+'</span>'+
+    '<span class="badge">'+esc(TIER_NAME[t.tier])+' · 第 '+t.tier+' 层</span>'+
+    '<span class="badge">'+dur(t.min)+'</span>'+
+    '<span class="pw">⚡ '+cost(t)+' 点 · '+esc(t.tier>=8?'远征':(POWER_LABEL[cost(t)]||''))+'</span>'+
+    (c?'<span class="badge done">已点亮 '+c.date+'</span>':(locked?'<span class="badge lock">未解锁</span>':''))+'</div>'+
+    '<p><b>怎么做</b>'+esc(t.do)+'</p><p><b>为什么</b>'+esc(t.win)+'</p>'+
+    '<p><b>标签</b>'+t.tags.map(x=>'<span class="m">#'+esc(x)+'</span>').join(' ')+'</p>'+
+    (locked?'<p><b>解锁条件</b>先在「'+esc(dm.name)+'」第 '+(t.tier-1)+' 层点亮 '+UNLOCK_NEED+' 个（当前 '+lowerProgress(id).got+'/'+UNLOCK_NEED+'）</p>':'')+
+    '<p><b>做完要回答</b>'+t.q.map(q=>esc(q.q)).join('<br>')+'</p>'+
+    (c&&c.answers?'<p><b>你写的</b>'+c.answers.filter(a=>a.a).map(a=>esc(a.a)).join('<br>')+'</p>':'')+
+    '<div class="acts foot">'+(c?'':'<button class="btn primary" id="setToday">设为今天的节点</button>')+
+    '<button class="btn ghost" id="cl3">关闭</button></div>';
+  if($('#setToday')) $('#setToday').onclick=()=>{ S.todayTaskId=id; delete S.carryFrom; save(); closeModal(); go('today'); renderAll(); toast('已定为今天'); };
+  $('#cl3').onclick=closeModal; $('#modal').classList.add('on');
+}
+
+/* ---------------- 成就 / 统计 ---------------- */
+function renderAch(){
+  $('#achCount').textContent = S.achievements.length+' / '+ACHS.length;
+  $('#achgrid').innerHTML = ACHS.map(a=>'<div class="ach'+(S.achievements.includes(a.id)?' un':'')+'">'+
+    '<div class="aic">'+a.ic+'</div><div><div class="an">'+esc(a.n)+'</div><div class="ad">'+esc(a.d)+'</div></div></div>').join('');
+}
+function renderStats(){
+  const ds=domStats(), bs=branchStats(), st=streak(), n=doneCount();
+  const tm=S.completions.reduce((a,c)=>a+(c.mins||0),0);
+  const moods=S.completions.filter(c=>c.mood>0).map(c=>c.mood);
+  const brDone=Object.values(bs).filter(x=>x.total&&x.done>=x.total).length;
+  $('#statgrid').innerHTML=[
+    ['已点亮',n+' 个'],['当前连击',st.cur+' 天'],['最长连击',st.best+' 天'],['投入时间',Math.round(tm/60)+' 小时'],
+    ['平均心情',moods.length?(moods.reduce((a,b)=>a+b,0)/moods.length).toFixed(1)+' / 5':'—'],
+    ['追问完成',qDoneCount()+' 组'],['分支全通',brDone+' / '+BRANCHES.length],['领域解锁',DOMAINS.filter(d=>tierUnlockedMax(d.key)>=4).length+' 个到顶'],
+    ['剩余节点',(TARGET-n)+' 个'],
+    ['今日体力', spentToday()+' / '+DAILY_POWER],
+    ['日均体力', (()=>{ const byDay={}; S.completions.forEach(c=>{ const t=TK[c.id]; if(t) byDay[c.date]=(byDay[c.date]||0)+t.power; });
+      const vs=Object.values(byDay); return vs.length ? Math.round(vs.reduce((a,b)=>a+b,0)/vs.length) : 0; })()+' 点'],
+    ['超额天数', (()=>{ const byDay={}; S.completions.forEach(c=>{ const t=TK[c.id]; if(t) byDay[c.date]=(byDay[c.date]||0)+t.power; });
+      return Object.values(byDay).filter(v=>v>DAILY_POWER).length; })()+' 天'],
+  ].map(x=>'<div class="stat"><div class="v">'+x[1]+'</div><div class="k">'+x[0]+'</div></div>').join('');
+  $('#dmbars').innerHTML=DOMAINS.map(d=>{ const s=ds[d.key], pct=s.total?s.done/s.total*100:0;
+    return '<div class="dmbar"><div class="l"><span>'+d.icon+' '+esc(d.name)+'</span><span>'+s.done+'/'+s.total+' · 第 '+tierUnlockedMax(d.key)+' 层</span></div>'+
+      '<div class="t"><i style="width:'+pct+'%;background:linear-gradient(90deg,'+d.color+',color-mix(in srgb,'+d.color+' 45%,#fff))"></i></div></div>'; }).join('');
+  $('#brbars').innerHTML=BRANCHES.map(b=>{ const s=bs[b.key], pct=s.total?s.done/s.total*100:0;
+    return '<div class="dmbar"><div class="l"><span>'+b.icon+' '+esc(b.name)+' <span class="tip">'+esc(DM[b.dm].name)+'</span></span><span>'+s.done+'/'+s.total+'</span></div>'+
+      '<div class="t"><i style="width:'+pct+'%;background:'+DM[b.dm].color+'"></i></div></div>'; }).join('');
+  drawRadar(ds); drawMood();
+}
+function drawRadar(ds){
+  const cv=$('#radar'); if(!cv) return;
+  const c=cv.getContext('2d'), W=cv.width, H=cv.height, cx=W/2, cy=H/2, R=Math.min(W,H)*0.34;
+  c.clearRect(0,0,W,H);
+  const keys=DOMAINS.map(d=>d.key), N=keys.length;
+  const mx=Math.max(1,...keys.map(k=>ds[k].total*50));
+  const ang=i=>-Math.PI/2+i*2*Math.PI/N;
+  for(let r=1;r<=4;r++){ c.beginPath();
+    for(let i=0;i<=N;i++){ const a=ang(i%N), rr=R*r/4;
+      const x=cx+Math.cos(a)*rr, y=cy+Math.sin(a)*rr; i?c.lineTo(x,y):c.moveTo(x,y); }
+    c.strokeStyle='rgba(160,255,200,'+(r===4?.22:.1)+')'; c.lineWidth=r===4?2:1.4; c.stroke(); }
+  for(let i=0;i<N;i++){ const a=ang(i); c.beginPath(); c.moveTo(cx,cy);
+    c.lineTo(cx+Math.cos(a)*R, cy+Math.sin(a)*R); c.strokeStyle='rgba(160,255,200,.1)'; c.lineWidth=1.4; c.stroke(); }
+  c.beginPath();
+  keys.forEach((k,i)=>{ const a=ang(i), v=Math.min(1,ds[k].xp/mx), rr=R*Math.max(v,.045);
+    const x=cx+Math.cos(a)*rr, y=cy+Math.sin(a)*rr; i?c.lineTo(x,y):c.moveTo(x,y); });
+  c.closePath();
+  const g=c.createLinearGradient(0,0,W,H);
+  g.addColorStop(0,'rgba(61,220,132,.5)'); g.addColorStop(1,'rgba(255,200,87,.4)');
+  c.fillStyle=g; c.fill(); c.strokeStyle='rgba(61,220,132,.95)'; c.lineWidth=3; c.stroke();
+  const ff=getComputedStyle(document.body).fontFamily;
+  keys.forEach((k,i)=>{ const a=ang(i), v=Math.min(1,ds[k].xp/mx), rr=R*Math.max(v,.045);
+    c.beginPath(); c.arc(cx+Math.cos(a)*rr, cy+Math.sin(a)*rr, 7, 0, 7);
+    c.fillStyle=DM[k].color; c.fill(); c.strokeStyle='rgba(0,0,0,.55)'; c.lineWidth=2; c.stroke();
+    const lx=cx+Math.cos(a)*(R+46), ly=cy+Math.sin(a)*(R+40);
+    c.fillStyle='rgba(232,245,238,.95)'; c.font='600 25px '+ff; c.textAlign='center'; c.textBaseline='middle';
+    c.fillText(DM[k].icon+DM[k].name, lx, ly);
+    c.fillStyle='rgba(143,167,154,.95)'; c.font='500 21px '+ff;
+    c.fillText(ds[k].done+'/'+ds[k].total, lx, ly+30); });
+}
+function drawMood(){
+  const cv=$('#mood'); if(!cv) return;
+  const c=cv.getContext('2d'), W=cv.width, H=cv.height, ff=getComputedStyle(document.body).fontFamily;
+  c.clearRect(0,0,W,H);
+  const pts=S.completions.filter(x=>x.mood>0).slice(-60);
+  c.strokeStyle='rgba(255,255,255,.08)'; c.lineWidth=1.4;
+  for(let r=0;r<=4;r++){ const y=20+(H-60)*r/4; c.beginPath(); c.moveTo(40,y); c.lineTo(W-20,y); c.stroke(); }
+  if(pts.length<2){ c.fillStyle='rgba(143,167,154,.9)'; c.font='500 24px '+ff; c.textAlign='center';
+    c.fillText('点亮两次以上，这里会出现心情曲线', W/2, H/2); return; }
+  const X=i=>40+(W-60)*i/(pts.length-1), Y=m=>20+(H-60)*(5-m)/4;
+  c.beginPath(); c.moveTo(X(0),H-40); pts.forEach((p,i)=>c.lineTo(X(i),Y(p.mood))); c.lineTo(X(pts.length-1),H-40); c.closePath();
+  const g=c.createLinearGradient(0,20,0,H-40); g.addColorStop(0,'rgba(255,200,87,.3)'); g.addColorStop(1,'rgba(255,200,87,0)');
+  c.fillStyle=g; c.fill();
+  c.beginPath(); pts.forEach((p,i)=>i?c.lineTo(X(i),Y(p.mood)):c.moveTo(X(i),Y(p.mood)));
+  c.strokeStyle='#ffc857'; c.lineWidth=3.4; c.lineJoin='round'; c.stroke();
+  pts.forEach((p,i)=>{ c.beginPath(); c.arc(X(i),Y(p.mood), i===pts.length-1?8:5.5, 0, 7);
+    c.fillStyle=i===pts.length-1?'#fff':'#ffc857'; c.fill(); c.strokeStyle='rgba(0,0,0,.5)'; c.lineWidth=2; c.stroke(); });
+  c.fillStyle='rgba(143,167,154,.9)'; c.font='500 19px '+ff; c.textAlign='left';
+  c.fillText('5 · 太好了',6,28); c.fillText('1 · 糟透了',6,H-34);
+}
+
+/* ---------------- 能力档案 ---------------- */
+function profileSentence(){
+  const ds=domStats(), bs0=branchStats(), st=streak(), n=doneCount();
+  const topD=[...DOMAINS].sort((a,b)=>ds[b.key].done-ds[a.key].done)[0];
+  const touched=DOMAINS.filter(d=>ds[d.key].done>0).length;
+  const brDone=Object.values(branchStats()).filter(x=>x.total&&x.done>=x.total).length;
+  return '我已经点亮 '+n+' 个从没做过的节点，覆盖 '+touched+' 个能力领域、'+brDone+' 条完整分支，最长连续 '+st.best+
+    ' 天。其中走得最远的是「'+topD.name+'」。我不是变专业了——我是变得不像只会一件事的人了。';
+}
+function renderProfile(){
+  const ds=domStats(), bs=branchStats(), n=doneCount();
+  if(!n){ $('#profileBody').innerHTML='<p class="tip">点亮第一个节点之后，这里会自动生成你的能力档案：一份"我能做到什么"的证据清单。</p>'; return; }
+  const insights=S.completions.filter(c=>c.answers&&c.answers.some(a=>a.a&&a.a.trim().length>=8));
+  $('#profileBody').innerHTML =
+    '<div class="statgrid">'+
+      '<div class="stat"><div class="v">'+n+'</div><div class="k">已点亮的真实经验</div></div>'+
+      '<div class="stat"><div class="v">'+Object.values(bs).filter(x=>x.done>0).length+'/27</div><div class="k">已触碰的分支</div></div>'+
+      '<div class="stat"><div class="v">'+Object.values(bs).filter(x=>x.total&&x.done>=x.total).length+'</div><div class="k">走通的完整分支</div></div>'+
+      '<div class="stat"><div class="v">'+insights.length+'</div><div class="k">留下过思考的节点</div></div>'+
+    '</div>'+
+    '<h2 class="sec">我能做到什么</h2>'+
+    DOMAINS.filter(d=>ds[d.key].done>0).map(d=>{
+      const list=S.completions.filter(c=>TK[c.id].dm===d.key);
+      return '<div style="margin-bottom:14px"><div style="font-size:13.5px;font-weight:700;color:'+d.color+'">'+d.icon+' '+esc(d.name)+'（'+list.length+' 个）</div>'+
+        '<div class="tip" style="margin-top:5px">'+list.map(c=>esc(TK[c.id].t)).join(' · ')+'</div></div>'; }).join('')+
+    (insights.length?'<h2 class="sec">我自己想明白的</h2>'+insights.slice(-8).reverse().map(c=>{
+      const a=c.answers.filter(x=>x.a&&x.a.trim().length>=8)[0];
+      return '<div style="padding:9px 0;border-bottom:1px dashed rgba(255,255,255,.08)"><div class="tip mono">'+c.date+' · '+esc(TK[c.id].t)+'</div>'+
+        '<div style="font-size:13.5px;color:#d3e8dc">'+esc(a.a)+'</div></div>'; }).join(''):'')+
+    '<h2 class="sec">一句话总结</h2><p style="font-size:14.5px;color:#d3e8dc">'+esc(profileSentence())+'</p>';
+}
+function profileMd(){
+  const ds=domStats(), st=streak(), n=doneCount();
+  const L=['# 我的能力档案','','> 导出时间：'+new Date().toLocaleString('zh-CN')+' · 由「人生技能树」自动生成','',
+    '## 一句话','',profileSentence(),'','## 数据','',
+    '- 点亮节点：**'+n+' / '+TARGET+'**','- 覆盖领域：**'+Object.values(ds).filter(x=>x.done>0).length+' / 8**',
+    '- 最长连续：**'+st.best+'** 天','- 追问完成：**'+qDoneCount()+'** 组',''];
+  for(const d of DOMAINS){
+    const list=S.completions.filter(c=>TK[c.id].dm===d.key);
+    if(!list.length) continue;
+    L.push('### '+d.icon+' '+d.name+'（'+list.length+' 个）','');
+    list.forEach(c=>{ const t=TK[c.id]; L.push('- **'+t.t+'**（'+c.date+' · '+TIER_NAME[t.tier]+' · '+BR[t.br].name+'）'); });
+    L.push('');
+  }
+  L.push('## 我自己想明白的','');
+  S.completions.filter(c=>c.answers&&c.answers.some(a=>a.a&&a.a.trim().length>=8)).forEach(c=>{
+    L.push('**'+c.date+'｜'+TK[c.id].t+'**','');
+    c.answers.filter(a=>a.a&&a.a.trim().length>=8).forEach(a=>L.push('> '+a.a.trim())); L.push('');
+  });
+  L.push('## 还没点亮的','');
+  const done=doneIds();
+  TASKS.filter(t=>!done.has(t.id)).forEach(t=>L.push('- [ ] '+t.id+' '+t.t+'（'+DM[t.dm].name+' · '+BR[t.br].name+' · '+TIER_NAME[t.tier]+'）'));
+  return L.join('\n');
+}
+function profileCardPng(){
+  const n=doneCount(); if(!n) return toast('先点亮第一个节点');
+  const W=1080,H=1500,cv=document.createElement('canvas'); cv.width=W; cv.height=H;
+  const c=cv.getContext('2d'), ff=getComputedStyle(document.body).fontFamily;
+  const bg=c.createLinearGradient(0,0,W,H); bg.addColorStop(0,'#0d1a13'); bg.addColorStop(.55,'#080d0a'); bg.addColorStop(1,'#070a08');
+  c.fillStyle=bg; c.fillRect(0,0,W,H);
+  const gl=c.createRadialGradient(W-140,90,20,W-140,90,760); gl.addColorStop(0,'rgba(61,220,132,.3)'); gl.addColorStop(1,'rgba(0,0,0,0)');
+  c.fillStyle=gl; c.fillRect(0,0,W,900);
+  c.strokeStyle='rgba(160,255,200,.22)'; c.lineWidth=3; c.strokeRect(26,26,W-52,H-52);
+  const wrap=(text,x,y,maxW,lh)=>{ let line='';
+    for(const ch of String(text)){ if(c.measureText(line+ch).width>maxW&&line){ c.fillText(line,x,y); line=ch; y+=lh; } else line+=ch; }
+    if(line) c.fillText(line,x,y); return y+lh; };
+  c.textAlign='left'; let y=150;
+  c.fillStyle='rgba(143,167,154,.95)'; c.font='600 28px '+ff; c.fillText('人生技能树 · 能力档案',84,y-56);
+  c.fillStyle='#3ddc84'; c.font='900 58px '+ff; c.fillText(n+' 个从没做过的节点',84,y+10); y+=78;
+  c.fillStyle='#d3e8dc'; c.font='400 30px '+ff; y=wrap(profileSentence(),84,y,W-168,46)+34;
+  const bsx=branchStats();
+  c.fillStyle='rgba(255,200,87,.95)'; c.font='700 26px '+ff; c.fillText('走过的分支',84,y); y+=46;
+  for(const b of BRANCHES){ const s=bsx[b.key]; if(!s.done) continue; if(y>H-320) break;
+    const bw=W-168; c.fillStyle='rgba(255,255,255,.09)'; c.fillRect(84,y+14,bw,12);
+    c.fillStyle=DM[b.dm].color; c.fillRect(84,y+14,bw*(s.done/s.total),12);
+    c.fillStyle='#d3e8dc'; c.font='400 29px '+ff; c.fillText(b.icon+' '+b.name+'   '+s.done+'/'+s.total,84,y); y+=54; }
+  y+=10; c.strokeStyle='rgba(160,255,200,.18)'; c.lineWidth=2;
+  c.beginPath(); c.moveTo(84,y); c.lineTo(W-84,y); c.stroke(); y+=44;
+  c.fillStyle='#8fa79a'; c.font='italic 400 25px '+ff;
+  y=wrap('一个男人应该能够换尿布，策划战争，杀猪，开船，设计房子，写十四行诗，结算账户，砌墙，接脱臼的骨头，安慰濒死的人。只有昆虫才专业化。',84,y,W-168,40)+16;
+  c.fillStyle='#5f7268'; c.font='400 24px '+ff;
+  c.fillText(new Date().toLocaleDateString('zh-CN')+' · 人生技能树',84,Math.min(y,H-70));
+  cv.toBlob(b=>{ if(b){ download('能力档案-'+ymd()+'.png',b); toast('能力卡已导出'); } },'image/png');
+}
+let blindTask=null;
+function blindDraw(){
+  const list=TASKS.filter(t=>!isDone(t.id));
+  blindTask=list[Math.floor(Math.random()*list.length)];
+  const t=blindTask, dm=DM[t.dm], br=BR[t.br];
+  $('#blindOut').innerHTML='<div style="border:1px solid var(--line2);border-radius:14px;padding:15px;background:rgba(255,255,255,.03)">'+
+    '<div class="sp" style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px">'+
+    '<span class="badge dm">'+dm.icon+' '+esc(dm.name)+'</span>'+
+    '<span class="badge dm">'+br.icon+' '+esc(br.name)+'</span>'+
+    '<span class="badge">'+esc(TIER_NAME[t.tier])+' · '+dur(t.min)+'</span></div>'+
+    '<div style="font-size:16px;font-weight:700;margin-bottom:6px">'+esc(t.t)+'</div>'+
+    '<div class="tip">'+esc(t.do)+'</div></div>'+
+    '<div class="row" style="margin-top:10px"><button class="btn sm" id="bSet">我今天就做它</button>'+
+    '<button class="btn ghost sm" id="bCopy">复制任务文字</button></div>';
+  $('#bSet').onclick=()=>{ S.todayTaskId=t.id; delete S.carryFrom; save(); go('today'); renderAll(); toast('已定为今天'); };
+  $('#bCopy').onclick=()=>copyText('【盲盒节点】'+t.t+'\n'+t.do+'\n—— 来自「人生技能树 · 100 个节点」');
+}
+function copyText(txt){
+  if(navigator.clipboard) navigator.clipboard.writeText(txt).then(()=>toast('已复制'),()=>fallbackCopy(txt));
+  else fallbackCopy(txt);
+}
+function fallbackCopy(txt){
+  const ta=document.createElement('textarea'); ta.value=txt; ta.style.position='fixed'; ta.style.left='-9999px';
+  document.body.appendChild(ta); ta.select();
+  try{ document.execCommand('copy'); toast('已复制'); }catch(e){ toast('复制失败'); }
+  ta.remove();
+}
+
+/* ---------------- 数据 ---------------- */
+function download(name,data,type){
+  const blob = data instanceof Blob ? data : new Blob([data],{type:type||'application/json;charset=utf-8'});
+  const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=name;
+  document.body.appendChild(a); a.click();
+  setTimeout(()=>{ URL.revokeObjectURL(a.href); a.remove(); },800);
+}
+function renderSettings(){
+  $('#crtRow').innerHTML=[['soft','温和 CRT'],['hard','硬核 CRT'],['off','纯净模式']].map(x=>
+    '<button class="btn'+(S.settings.crt===x[0]?' primary':'')+'" data-crt="'+x[0]+'">'+x[1]+'</button>').join('');
+  Array.from($('#crtRow').children).forEach(b=>b.onclick=()=>{ S.settings.crt=b.dataset.crt; applyStyle(); save(); renderSettings(); toast('显示风格：'+b.textContent); });
+  const THEMES=[['green','绿 · 磷光'],['blue','蓝 · 冷光'],['amber','橙 · 琥珀']];
+  $('#themeRow').innerHTML=THEMES.map(x=>'<button class="btn'+((S.settings.theme||'green')===x[0]?' primary':'')+'" data-theme="'+x[0]+'">'+x[1]+'</button>').join('');
+  Array.from($('#themeRow').children).forEach(b=>b.onclick=()=>{ S.settings.theme=b.dataset.theme; applyStyle(); save(); renderSettings(); toast('主题：'+b.textContent); });
+  $('#ruleList').innerHTML=[
+    '<b>每天点亮一个从没做过的节点</b>：系统不会发你已经点亮的。',
+    '<b>科技树按层解锁</b>：领域内第 N 层，需要第 N-1 层完成 '+UNLOCK_NEED+' 个。同一层永远有多个选择，不会卡死。',
+    '<b>做完要回答三问</b>：那不是作业，是把体验变成能力的唯一动作。写了才算真的做过。',
+    '<b>体力</b>：每天回满 15 点，按节点时长扣 3/5/10/15。<b>耗尽就是今天的达标线</b>，可继续超额拿奖励。',
+    '<b>熔断卡</b>：连续打卡每满 7 天自动攒 1 张（最多 3 张）。某天做不到，用掉一张，连击不清零。',
+    '<b>复活卡 3 张</b>：真断了用一张补回来。用完也不必自责——那是该减量的信号。',
+    '<b>夜间保护</b>：22:00 后只发轻量的睡前节点。你在治失眠，别跟自己的觉作对。',
+    '<b>100 个节点不是终点</b>：导出能力档案，从里面挑 20 个变成你的日常——新鲜事的使命是变成你的一部分。',
+  ].map(x=>'<li style="padding:9px 0 9px 26px;position:relative;border-bottom:1px dashed rgba(255,255,255,.07)">'+
+    '<span style="position:absolute;left:4px;top:12px;color:var(--phos);font-size:9px">◆</span>'+x+'</li>').join('');
+}
+function applyStyle(){
+  document.documentElement.setAttribute('data-crt', S.settings.crt||'soft');
+  document.documentElement.setAttribute('data-theme', S.settings.theme||'green');
+}
+
+function go(v){
+  $$('#tabs button').forEach(b=>b.setAttribute('aria-selected', String(b.dataset.v===v)));
+  $$('section.view').forEach(s=>s.classList.toggle('on', s.id==='v-'+v));
+  if(v==='tree') renderTree();
+  if(v==='domains') renderDomains();
+  if(v==='ach') renderAch();
+  if(v==='stats'){ renderHeat(); renderStats(); }
+  if(v==='profile') renderProfile();
+  if(v==='about') renderSettings();
+  if(v==='weeks') renderWeeks();
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+function renderAll(){
+  syncDay();
+  renderHead(); renderToday();
+  if($('#v-tree').classList.contains('on')) renderTree();
+  if($('#v-domains').classList.contains('on')) renderDomains();
+  if($('#v-weeks').classList.contains('on')) renderWeeks();
+  if($('#v-stats').classList.contains('on')){ renderHeat(); renderStats(); }
+  renderAch(); renderSettings(); renderProfile();
+  save();
+}
+
+/* ---------------- 绑定 ---------------- */
+$$('#tabs button').forEach(b=>b.onclick=()=>go(b.dataset.v));
+$('#modal').onclick=e=>{ if(e.target.id==='modal') closeModal(); };
+document.addEventListener('keydown',e=>{ if(e.key==='Escape') closeModal(); });
+['#fTag','#fState','#fDm','#fWeek'].forEach(s=>$(s).onchange=renderTree);
+$('#fWeek').innerHTML='<option value="">全部周次</option>'+WEEKS.map(w=>'<option value="'+w.n+'">第 '+w.n+' 周 · '+esc(w.name)+'</option>').join('')
+  +'<option value="0">备选池（未进主线）</option>';
+$('#fTag').innerHTML='<option value="">全部标签</option>'+[...new Set(TASKS.flatMap(t=>t.tags))].map(x=>'<option value="'+x+'">'+x+'</option>').join('');
+$('#fDm').innerHTML='<option value="">全部领域</option>'+DOMAINS.map(d=>'<option value="'+d.key+'">'+d.icon+' '+d.name+'</option>').join('');
+$('#btnExport').onclick=()=>{ download('人生技能树-备份-'+ymd()+'.json', JSON.stringify(S,null,2)); toast('已导出备份'); };
+$('#btnImport').onclick=()=>$('#fileInput').click();
+$('#fileInput').onchange=e=>{
+  const f=e.target.files[0]; if(!f) return;
+  const r=new FileReader();
+  r.onload=()=>{ try{
+    const o=JSON.parse(r.result);
+    if(!o||!Array.isArray(o.completions)) throw new Error('格式不对');
+    S=Object.assign(blank(),o); save(); applyStyle(); renderAll(); toast('导入成功：已点亮 '+doneCount()+' 个');
+  }catch(err){ toast('导入失败：'+err.message); } };
+  r.readAsText(f); e.target.value='';
+};
+$('#btnReset').onclick=()=>{ if(!confirm('清空全部记录并重新开始？建议先导出备份。')) return;
+  S=blank(); save(); applyStyle(); renderAll(); go('today'); toast('已重置'); };
+$('#btnProfileMd').onclick=()=>{ download('能力档案-'+ymd()+'.md', profileMd(),'text/markdown;charset=utf-8');
+  S.profileExported=true; save(); checkAch(); renderAch(); toast('能力档案已导出'); };
+$('#btnProfileCard').onclick=profileCardPng;
+$('#btnCopyProfile').onclick=()=>{ S.profileExported=true; save(); checkAch(); renderAch(); copyText(profileSentence()); };
+$('#btnBlind').onclick=blindDraw;
+$('#btnBlindLink').onclick=()=>{ if(!blindTask) blindDraw();
+  copyText(location.origin+location.pathname+'?node='+blindTask.id); toast('链接已复制，发给朋友他就能看到同一个节点'); };
+
+/* ---------------- 启动 ---------------- */
+(function boot(){
+  applyStyle(); syncDay();
+  const params=new URLSearchParams(location.search);
+  if(params.get('v')) go(params.get('v'));
+  const node=params.get('node');
+  if(node&&TK[node]) setTimeout(()=>{ showTask(node); toast('这是别人丢给你的盲盒节点'); },600);
+  renderQuote(); renderNight(); renderAll(); checkAch(true); renderAch();
+  if(!doneCount()) setTimeout(()=>toast('欢迎。规则只有一条：每天点亮一个你没做过的节点。',5000),700);
+  setInterval(()=>{ if(S.todayDate!==ymd()){ renderAll(); renderNight(); } },60000);
+})();
+})();
+</script>
+</body>
+</html>
