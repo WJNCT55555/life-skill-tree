@@ -68,10 +68,12 @@ function readFormat(m) {
   bits1.push(m[8][7], m[8][8], m[7][8]);
   for (let i = 9; i <= 14; i++) bits1.push(m[14 - i][8]);
   const bits2 = [];
-  for (let i = 0; i <= 7; i++) bits2.push(m[size - 1 - i][8]);
-  for (let i = 8; i <= 14; i++) bits2.push(m[8][size - 15 + i]);
-  // 格式信息是「低位在前」铺的：(8,0) 放的是 bit0，不是最高位
-  const toInt = (b) => b.reduce((a, v, i) => a | (v << i), 0);
+  for (let i = 0; i <= 6; i++) bits2.push(m[size - 1 - i][8]);        // 左下 7 位
+  // (size-8, 8) 是固定黑模块，不是格式位
+  for (let i = 7; i <= 14; i++) bits2.push(m[8][size - 15 + i]);      // 右上 8 位
+  // 格式信息「高位在前」：(8,0) 是最高的 bit14。
+  // 以前这里和编码器一起写成了低位在前，两边一致地错，所以自检全绿而真机全废。
+  const toInt = (b) => b.reduce((a, v, i) => a | (v << (14 - i)), 0);
   const v1 = toInt(bits1) ^ 0b101010000010010;
   const v2 = toInt(bits2) ^ 0b101010000010010;
   // 两份必须一致
@@ -235,33 +237,87 @@ for (let v = 1; v <= 20; v++) for (const ec of ['L', 'M', 'Q', 'H']) {
 ok('所有版本·等级的「块数 = 纠错块数」', true);
 
 /* ============================================================
-   2 + 3. 生成 → 独立解码 + RS 校验
-   ============================================================ */
-console.log('\n【2】里德-所罗门校验 + 【3】独立全量解码');
+   2b. 外部参照物 —— 这一节是拿命换来的
+   ============================================================
+   教训：这套自检原来全是「自己跟自己比」。编码器和解码器是同一个脑子写的，
+   格式信息那 15 位两边一起写反了，于是 49 项全绿，而真机一张都扫不出来。
+   自洽不等于正确——只有引入外部参照物才验得出来。
 
-function roundTrip(text, ec, expectVersion) {
+   下面这两张矩阵是 qrcode-generator（另一套独立实现）生成的，
+   并且用 jsQR（真·扫码器同款解码器）确认过能读出来。
+   我的解码器必须能把它们解回来；解不回来就说明我的理解和标准不一致。
+   反向的一半（我的编码器能不能被外部解码器读懂）靠 tools/qr-check.mjs
+   和人工用手机扫来兜底，这里至少把解码侧钉死。
+   ============================================================ */
+console.log('\n【2b】外部参照物：qrcode-generator 生成的矩阵，我的解码器读得出来吗？');
+const REF_MATRICES = [
+  { text: 'HELLO', ec: 'M', size: 21,
+    bits: '111111100001001111111100000100010101000001101110101100001011101101110101010101011101101110101100101011101100000101111001000001111111101010101111111000000001100000000000101111100011001111100011011010111111001100001111101000101101110011010000111111001100010111111000100100101000000001010100101000111111100111010010110100000101010000111110101110101101010010110101110101101111101000101110101100101100100100000100111111011100111111101100100010110' },
+  { text: 'https://example.com/', ec: 'M', size: 25,
+    bits: '1111111011011100101111111100000101110110010100000110111010000101111010111011011101011010111001011101101110100000111110101110110000010011011101010000011111111010101010101111111000000001010100110000000010110111011110011010010111110010100010100010100010101011100011110011111000011110000011001100000011001001101101000001011010111000001011111011111111000101011110000010101000101101010010100001101111110001001101111111000111111111100000000101011001000101011111111010011000101010111100000101010100110001001010111010010111001111110101011101011101111011011111101110101001110001101011010000010010000010110101001111111010101010011111111' },
+];
+for (const r of REF_MATRICES) {
+  const m = [];
+  for (let i = 0; i < r.size; i++) m.push(r.bits.slice(i * r.size, (i + 1) * r.size).split('').map(Number));
+  const d = decodeMatrix(m);
+  const label = r.text.length > 24 ? r.text.slice(0, 21) + '…' : r.text;
+  ok(`外部矩阵 ${r.size}×${r.size} →「${label}」`, d.text === r.text && d.ec === r.ec && d.rsOK,
+    `读到「${d.text}」/ 纠错 ${d.ec} / ${d.why || 'RS ok'}`);
+}
+// 格式信息必须自己就能通过 BCH 校验 —— 位序写反的话这一步立刻炸
+console.log('\n【2c】格式信息自校验：15 位去掉 0x5412 后，高 5 位的 BCH 必须等于低 10 位');
+for (const [text, ec] of [['HELLO', 'M'], ['https://life-skill-tree.2281544643.workers.dev/', 'Q']]) {
   const qr = QR.encode(text, { ec });
-  const fmt = readFormat(qr.modules);
-  const cw = readCodewords(qr.modules, qr.version, fmt.mask);
-  const { blocks, ecs, ecLen, consumed } = unweave(cw, qr.version, ec);
+  const m = qr.modules, size = m.length;
+  const seq = [[8,0],[8,1],[8,2],[8,3],[8,4],[8,5],[8,7],[8,8],[7,8],[5,8],[4,8],[3,8],[2,8],[1,8],[0,8]];
+  const v = seq.reduce((a, [r, c], i) => a | (m[r][c] << (14 - i)), 0) ^ 0b101010000010010;
+  const data = v >> 10;
+  let rem = data << 10;
+  while (rem.toString(2).length >= 11) rem ^= 0b10100110111 << (rem.toString(2).length - 11);
+  const bchOK = ((data << 10) | rem) === v;
+  const ecMap = { 1: 'L', 0: 'M', 3: 'Q', 2: 'H' };
+  ok(`${ec} 级：格式信息 BCH 合法，且纠错位/掩码和编码器一致`,
+    bchOK && ecMap[(v >> 13) & 3] === ec && ((v >> 10) & 7) === qr.mask,
+    `BCH=${bchOK} 纠错=${ecMap[(v >> 13) & 3]} 掩码=${(v >> 10) & 7}（编码器说 ${qr.mask}）`);
+  ok(`${ec} 级：两份格式信息一致（31 位里没有互相打架）`, readFormat(m).consistent);
+  ok(`${ec} 级：固定黑模块在 (size-8, 8)`, m[size - 8][8] === 1);
+}
+
+
+/** 把一张矩阵解回文本。一个字节都不复用编码器，纯从像素结构反推。 */
+function decodeMatrix(m) {
+  const version = (m.length - 17) / 4;
+  const fmt = readFormat(m);
+  if (!fmt.consistent) return { text: null, ec: fmt.ec, mask: fmt.mask, version, why: '两份格式信息不一致' };
+  const cw = readCodewords(m, version, fmt.mask);
+  const { blocks, ecs, ecLen, consumed } = unweave(cw, version, fmt.ec);
   const rsOK = blocks.every((b, i) => syndromesZero(b.concat(ecs[i]), ecLen));
-  // 解析
   const all = blocks.flat();
   const bitStr = all.map((b) => b.toString(2).padStart(8, '0')).join('');
   const mode = parseInt(bitStr.slice(0, 4), 2);
-  const cci = qr.version <= 9 ? 8 : 16;
+  const cci = version <= 9 ? 8 : 16;
   const len = parseInt(bitStr.slice(4, 4 + cci), 2);
-  const bytes = [];
-  for (let i = 0; i < len; i++) bytes.push(parseInt(bitStr.slice(4 + cci + i * 8, 12 + cci + i * 8), 2));
-  const decoded = Buffer.from(bytes).toString('utf8');
-  const fmtOK = fmt.consistent && fmt.ec === ec && fmt.mask === qr.mask;
+  let text = null;
+  if (mode === 4 && Number.isFinite(len) && len >= 0 && 4 + cci + len * 8 <= bitStr.length) {
+    const bytes = [];
+    for (let i = 0; i < len; i++) bytes.push(parseInt(bitStr.slice(4 + cci + i * 8, 12 + cci + i * 8), 2));
+    text = Buffer.from(bytes).toString('utf8');
+  }
+  return { text, ec: fmt.ec, mask: fmt.mask, version, rsOK, mode, consumed, len };
+}
+
+function roundTrip(text, ec, expectVersion) {
+  const qr = QR.encode(text, { ec });
+  const d = decodeMatrix(qr.modules);
+  const fmtOK = d.ec === ec && d.mask === qr.mask;
   const verOK = expectVersion === undefined || qr.version === expectVersion;
-  const cwOK = consumed === TOTAL_CW[qr.version];
-  return { qr, ok: rsOK && mode === 4 && decoded === text && fmtOK && verOK && cwOK,
-    why: [!rsOK && 'RS校验失败', mode !== 4 && '模式位不对:' + mode,
-      decoded !== text && `解出「${decoded}」≠「${text}」`,
-      !fmtOK && '格式信息不一致', !verOK && `版本 ${qr.version} ≠ 期望 ${expectVersion}`,
-      !cwOK && `码字数量 ${consumed} ≠ ${TOTAL_CW[qr.version]}`].filter(Boolean).join(' / ') };
+  const cwOK = d.consumed === TOTAL_CW[qr.version];
+  return { qr, ok: d.rsOK && d.mode === 4 && d.text === text && fmtOK && verOK && cwOK,
+    why: [!d.rsOK && 'RS校验失败', d.mode !== 4 && '模式位不对:' + d.mode,
+      d.text !== text && `解出「${d.text}」≠「${text}」`,
+      !fmtOK && `格式信息对不上（读到 ${d.ec}/掩码${d.mask}）`,
+      !verOK && `版本 ${qr.version} ≠ 期望 ${expectVersion}`,
+      !cwOK && `码字数量 ${d.consumed} ≠ ${TOTAL_CW[qr.version]}`].filter(Boolean).join(' / ') };
 }
 
 // 一批真实内容

@@ -711,21 +711,27 @@ footer.ft{margin-top:36px;text-align:center;font-size:11px;color:var(--dim2);lin
   function placeFormat(matrix, ec, maskId, version) {
     const size = matrix.length;
     const fmt = formatInfo(ec, maskId);
-    const bit = (i) => (fmt >> i) & 1;
-    for (let i = 0; i <= 5; i++) matrix[8][i] = bit(i);
-    matrix[8][7] = bit(6);
-    matrix[8][8] = bit(7);
-    matrix[7][8] = bit(8);
-    for (let i = 9; i <= 14; i++) matrix[14 - i][8] = bit(i);
-    for (let i = 0; i <= 7; i++) matrix[size - 1 - i][8] = bit(i);
-    for (let i = 8; i <= 14; i++) matrix[8][size - 15 + i] = bit(i);
-    matrix[8][size - 8] = 1;   // 固定黑模块，就在第 8 行最右边
+    // 格式信息是「高位在前」铺的：(8,0) 放的是 15 位里的最高位。
+    // 这一条以前写反了（低位在前），图形看着完全正常，但任何真实扫码器
+    // 都读不出格式信息——也就拿不到纠错等级和掩码，整张码废掉。
+    // 用 qrcode-generator + jsQR 做外部对照才验出来。
+    const b = (k) => (fmt >> (14 - k)) & 1;   // k=0 是最高位
+    // 第一份：围着左上定位图形
+    for (let i = 0; i <= 5; i++) matrix[8][i] = b(i);
+    matrix[8][7] = b(6);
+    matrix[8][8] = b(7);
+    matrix[7][8] = b(8);
+    for (let i = 9; i <= 14; i++) matrix[14 - i][8] = b(i);
+    // 第二份：左下 7 位 + 固定黑模块 + 右上 8 位
+    for (let i = 0; i <= 6; i++) matrix[size - 1 - i][8] = b(i);
+    matrix[size - 8][8] = 1;                  // 固定黑模块，就在左下那份的紧上面
+    for (let i = 7; i <= 14; i++) matrix[8][size - 15 + i] = b(i);
     if (version >= 7) {
       const vi = versionInfo(version);
       for (let i = 0; i < 18; i++) {
-        const b = (vi >> i) & 1;
-        matrix[Math.floor(i / 3)][size - 11 + (i % 3)] = b;
-        matrix[size - 11 + (i % 3)][Math.floor(i / 3)] = b;
+        const bit = (vi >> i) & 1;
+        matrix[Math.floor(i / 3)][size - 11 + (i % 3)] = bit;
+        matrix[size - 11 + (i % 3)][Math.floor(i / 3)] = bit;
       }
     }
   }
